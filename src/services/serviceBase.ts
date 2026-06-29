@@ -280,8 +280,8 @@ export abstract class TherassistantService {
       targetId: id,
       fromStatus: previous ? String(previous[statusColumn] ?? "") || null : null,
       toStatus,
-      reason,
-      metadata,
+      reason: reason ?? null,
+      metadata: metadata ?? {},
     });
 
     await this.writeAuditLog({
@@ -290,7 +290,7 @@ export abstract class TherassistantService {
       action: "status_change",
       oldValues: { [statusColumn]: previous?.[statusColumn] ?? null },
       newValues: { [statusColumn]: toStatus },
-      metadata: { reason, ...metadata },
+      metadata: { reason: reason ?? null, ...(metadata ?? {}) },
     });
 
     return updated;
