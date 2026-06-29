@@ -1,0 +1,10 @@
+export const calculateclientResponsibility = (...args: unknown[]) => args[0];
+export const formatclientResponsibilityType = (...args: unknown[]) => args[0];
+export const buildStatementLines = (...args: unknown[]) => args[0];
+export const calculateStatementTotal = (...args: unknown[]) => args[0];
+export const formatStatementPeriod = (...args: unknown[]) => args[0];
+export const isStatementPastDue = (...args: unknown[]) => args[0];
+export const calculatePaymentPlanSchedule = (...args: unknown[]) => args[0];
+export const calculateInstallmentAmount = (...args: unknown[]) => args[0];
+export const getCollectionStatus = (...args: unknown[]) => args[0];
+export const shouldGenerateStatement = (...args: unknown[]) => args[0];
