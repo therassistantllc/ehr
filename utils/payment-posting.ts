@@ -1,0 +1,12 @@
+export const formatPaymentStatus = (...args: unknown[]) => args[0];
+export const calculatePaymentAppliedAmount = (...args: unknown[]) => args[0];
+export const calculatePaymentUnappliedAmount = (...args: unknown[]) => args[0];
+export const isPaymentFullyApplied = (...args: unknown[]) => args[0];
+export const validatePaymentAllocation = (...args: unknown[]) => args[0];
+export const allocatePaymentToClaim = (...args: unknown[]) => args[0];
+export const allocatePaymentToClaimLine = (...args: unknown[]) => args[0];
+export const detectDuplicatePayment = (...args: unknown[]) => args[0];
+export const detectPaymentOverage = (...args: unknown[]) => args[0];
+export const buildPaymentLedgerTransaction = (...args: unknown[]) => args[0];
+export const buildPaymentReversalPayload = (...args: unknown[]) => args[0];
+export const formatCheckOrTraceNumber = (...args: unknown[]) => args[0];
