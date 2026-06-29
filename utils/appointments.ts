@@ -1,0 +1,12 @@
+export const formatAppointmentTime = (...args: unknown[]) => args[0];
+export const formatAppointmentDuration = (...args: unknown[]) => args[0];
+export const calculateAppointmentDuration = (...args: unknown[]) => args[0];
+export const hasAppointmentConflict = (...args: unknown[]) => args[0];
+export const isTelehealthAppointment = (...args: unknown[]) => args[0];
+export const isInPersonAppointment = (...args: unknown[]) => args[0];
+export const getAppointmentStatusLabel = (...args: unknown[]) => args[0];
+export const getAppointmentStatusColor = (...args: unknown[]) => args[0];
+export const getCalendarEventTitle = (...args: unknown[]) => args[0];
+export const getCalendarEventMetadata = (...args: unknown[]) => args[0];
+export const mapCheckInToAppointmentStatus = (...args: unknown[]) => args[0];
+export const isCompletedUnbilledAppointment = (...args: unknown[]) => args[0];
