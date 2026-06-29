@@ -1,0 +1,11 @@
+export const normalizePayerName = (...args: unknown[]) => args[0];
+export const matchPayerAlias = (...args: unknown[]) => args[0];
+export const getActiveContractForDos = (...args: unknown[]) => args[0];
+export const getRateForCpt = (...args: unknown[]) => args[0];
+export const calculateExpectedAllowed = (...args: unknown[]) => args[0];
+export const calculateExpectedPayment = (...args: unknown[]) => args[0];
+export const compareExpectedToActual = (...args: unknown[]) => args[0];
+export const formatContractStatus = (...args: unknown[]) => args[0];
+export const formatRateType = (...args: unknown[]) => args[0];
+export const isContractExpired = (...args: unknown[]) => args[0];
+export const detectContractVariance = (...args: unknown[]) => args[0];
