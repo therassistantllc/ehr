@@ -1,0 +1,9 @@
+export const formatAdjustmentType = (...args: unknown[]) => args[0];
+export const formatGroupCode = (...args: unknown[]) => args[0];
+export const calculateAdjustmentTotal = (...args: unknown[]) => args[0];
+export const validateAdjustmentReason = (...args: unknown[]) => args[0];
+export const isCredentialingWriteoff = (...args: unknown[]) => args[0];
+export const isclientResponsibilityAdjustment = (...args: unknown[]) => args[0];
+export const buildAdjustmentLedgerTransaction = (...args: unknown[]) => args[0];
+export const buildAdjustmentReversalPayload = (...args: unknown[]) => args[0];
+export const mapCarcToAdjustmentType = (...args: unknown[]) => args[0];
