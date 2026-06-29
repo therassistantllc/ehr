@@ -16,7 +16,10 @@ export type TherassistantRecord = {
   [key: string]: unknown;
 };
 
-export type TherassistantSupabaseClient = SupabaseClient<Record<string, unknown>, "public", Record<string, unknown>>;
+// The Supabase schema is still being implemented through migrations, so this
+// intentionally stays broad. Once the generated Supabase Database type exists,
+// replace this alias with SupabaseClient<Database>.
+export type TherassistantSupabaseClient = SupabaseClient<any, any, any>;
 
 function readEnv(name: string): string | undefined {
   if (typeof process !== "undefined" && process.env?.[name]) {
