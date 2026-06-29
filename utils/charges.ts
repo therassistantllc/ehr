@@ -1,0 +1,12 @@
+export const getChargeStatusLabel = (...args: unknown[]) => args[0];
+export const isChargeEditable = (...args: unknown[]) => args[0];
+export const canCreateClaimFromCharge = (...args: unknown[]) => args[0];
+export const getChargeValidationErrors = (...args: unknown[]) => args[0];
+export const groupChargesByClient = (...args: unknown[]) => args[0];
+export const groupChargesByPayer = (...args: unknown[]) => args[0];
+export const groupChargesByProvider = (...args: unknown[]) => args[0];
+export const calculateChargeAmount = (...args: unknown[]) => args[0];
+export const calculateTotalCharges = (...args: unknown[]) => args[0];
+export const isDuplicateCharge = (...args: unknown[]) => args[0];
+export const mapAppointmentToCharge = (...args: unknown[]) => args[0];
+export const mapNoteToCharge = (...args: unknown[]) => args[0];
