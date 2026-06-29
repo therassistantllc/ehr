@@ -1,0 +1,12 @@
+export const parseCsvFile = (...args: unknown[]) => args[0];
+export const parseExcelFile = (...args: unknown[]) => args[0];
+export const normalizeImportHeaders = (...args: unknown[]) => args[0];
+export const mapImportRowToEntity = (...args: unknown[]) => args[0];
+export const validateImportRow = (...args: unknown[]) => args[0];
+export const detectImportDuplicates = (...args: unknown[]) => args[0];
+export const formatImportError = (...args: unknown[]) => args[0];
+export const buildLegacyRecordLink = (...args: unknown[]) => args[0];
+export const rollbackImportPreview = (...args: unknown[]) => args[0];
+export const sanitizeImportedText = (...args: unknown[]) => args[0];
+export const coerceImportDate = (...args: unknown[]) => args[0];
+export const coerceImportCurrency = (...args: unknown[]) => args[0];
