@@ -1,0 +1,12 @@
+export const buildLedgerTransaction = (...args: unknown[]) => args[0];
+export const buildLedgerEntry = (...args: unknown[]) => args[0];
+export const validateLedgerTransactionBalanced = (...args: unknown[]) => args[0];
+export const calculateClientBalanceFromLedger = (...args: unknown[]) => args[0];
+export const calculateClaimBalanceFromLedger = (...args: unknown[]) => args[0];
+export const calculatePayerBalanceFromLedger = (...args: unknown[]) => args[0];
+export const getLedgerAccountForEntryType = (...args: unknown[]) => args[0];
+export const isAccountingPeriodClosed = (...args: unknown[]) => args[0];
+export const getAccountingPeriodForDate = (...args: unknown[]) => args[0];
+export const formatLedgerEntryType = (...args: unknown[]) => args[0];
+export const formatLedgerSide = (...args: unknown[]) => args[0];
+export const traceLedgerSource = (...args: unknown[]) => args[0];
