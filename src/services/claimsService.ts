@@ -55,7 +55,11 @@ function normalizeDiagnosisCodes(value: unknown): string[] {
 }
 
 function normalizeServiceLines(value: unknown): ServiceLineInput[] {
-  return Array.isArray(value) ? value as ServiceLineInput[] : [];
+  return Array.isArray(value) ? (value as ServiceLineInput[]) : [];
+}
+
+function dataValue(record: TherassistantRecord, key: string): unknown {
+  return record.data && typeof record.data === "object" ? (record.data as Record<string, unknown>)[key] : undefined;
 }
 
 export class ClaimsService extends TherassistantService {
@@ -141,7 +145,7 @@ export class ClaimsService extends TherassistantService {
     if (!claim) throw new ServiceError("Claim not found.");
 
     const issues: ClaimValidationIssue[] = [];
-    const diagnosisCodes = normalizeDiagnosisCodes(claim.diagnosis_codes ?? claim.data && typeof claim.data === "object" ? (claim.data as Record<string, unknown>).diagnosisCodes : []);
+    const diagnosisCodes = normalizeDiagnosisCodes(claim.diagnosis_codes ?? dataValue(claim, "diagnosisCodes") ?? []);
 
     if (!claim.client_id) issues.push({ field: "client_id", message: "Client is required.", severity: "error" });
     if (!claim.provider_id && !claim.rendering_provider_id) issues.push({ field: "rendering_provider_id", message: "Rendering provider is required.", severity: "error" });
@@ -282,7 +286,7 @@ export class ClaimsService extends TherassistantService {
     const total = money(claim.total_charge_amount);
     const open = money(total - paid - adjusted);
 
-    const nextStatus: ClaimStatus = open === 0 ? "paid" : String(claim.status) as ClaimStatus;
+    const nextStatus: ClaimStatus = open === 0 ? "paid" : (String(claim.status) as ClaimStatus);
     return this.updateOne("claims", claimId, {
       payer_paid_amount: paid,
       adjustment_amount: adjusted,
