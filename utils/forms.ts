@@ -1,0 +1,10 @@
+export const getDirtyFields = (...args: unknown[]) => args[0];
+export const hasUnsavedChanges = (...args: unknown[]) => args[0];
+export const resetFormToDefaults = (...args: unknown[]) => args[0];
+export const coerceFormValues = (...args: unknown[]) => args[0];
+export const buildPatchPayload = (...args: unknown[]) => args[0];
+export const buildCreatePayload = (...args: unknown[]) => args[0];
+export const mapApiErrorsToFormErrors = (...args: unknown[]) => args[0];
+export const scrollToFirstError = (...args: unknown[]) => args[0];
+export const isSubmitDisabled = (...args: unknown[]) => args[0];
+export const prepareSelectOptions = (...args: unknown[]) => args[0];
