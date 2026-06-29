@@ -1,3 +1,7 @@
+export const calculateCleanClaimRate = (...args: unknown[]) => args[0];
+export const calculateFirstPassYield = (...args: unknown[]) => args[0];
+export const calculateDaysInAr = (...args: unknown[]) => args[0];
+export const calculateArAgingBucket = (...args: unknown[]) => args[0];
 export const calculateAverageReimbursement = (...args: unknown[]) => args[0];
 export const calculatePayerMix = (...args: unknown[]) => args[0];
 export const calculateAuthHitRate = (...args: unknown[]) => args[0];
