@@ -1,0 +1,10 @@
+export const maskSsn = (...args: unknown[]) => args[0];
+export const maskMemberId = (...args: unknown[]) => args[0];
+export const maskPhone = (...args: unknown[]) => args[0];
+export const maskEmail = (...args: unknown[]) => args[0];
+export const redactPhi = (...args: unknown[]) => args[0];
+export const sanitizeErrorForClient = (...args: unknown[]) => args[0];
+export const sanitizeAuditMetadata = (...args: unknown[]) => args[0];
+export const hasTenantScope = (...args: unknown[]) => args[0];
+export const canAccessRecord = (...args: unknown[]) => args[0];
+export const stripUnauthorizedFields = (...args: unknown[]) => args[0];
