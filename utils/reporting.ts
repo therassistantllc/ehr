@@ -1,4 +1,8 @@
+export const calculateAverageReimbursement = (...args: unknown[]) => args[0];
+export const calculatePayerMix = (...args: unknown[]) => args[0];
+export const calculateAuthHitRate = (...args: unknown[]) => args[0];
 export const formatReportDateRange = (...args: unknown[]) => args[0];
 export const groupByPayer = (...args: unknown[]) => args[0];
 export const groupByProvider = (...args: unknown[]) => args[0];
 export const groupByCpt = (...args: unknown[]) => args[0];
+export const exportToCsv = (...args: unknown[]) => args[0];
