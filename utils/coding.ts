@@ -1,0 +1,12 @@
+export const normalizeCptCode = (...args: unknown[]) => args[0];
+export const isTimedCptCode = (...args: unknown[]) => args[0];
+export const calculateUnitsFromMinutes = (...args: unknown[]) => args[0];
+export const getCptDescription = (...args: unknown[]) => args[0];
+export const validateCptModifierCombo = (...args: unknown[]) => args[0];
+export const validateCptPosCombo = (...args: unknown[]) => args[0];
+export const validateProviderCredentialForCpt = (...args: unknown[]) => args[0];
+export const validateDiagnosisForClaim = (...args: unknown[]) => args[0];
+export const formatDiagnosisCode = (...args: unknown[]) => args[0];
+export const normalizeDiagnosisCode = (...args: unknown[]) => args[0];
+export const buildDiagnosisPointers = (...args: unknown[]) => args[0];
+export const checkNcciConflict = (...args: unknown[]) => args[0];
