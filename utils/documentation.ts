@@ -1,0 +1,13 @@
+export const calculateSessionDuration = (...args: unknown[]) => args[0];
+export const validateTimeBasedService = (...args: unknown[]) => args[0];
+export const validateNoteHasGoal = (...args: unknown[]) => args[0];
+export const validateNoteHasDiagnosis = (...args: unknown[]) => args[0];
+export const validateNoteSignature = (...args: unknown[]) => args[0];
+export const isNoteLocked = (...args: unknown[]) => args[0];
+export const canAmendNote = (...args: unknown[]) => args[0];
+export const getNoteStatusLabel = (...args: unknown[]) => args[0];
+export const getClinicalNoteTypeLabel = (...args: unknown[]) => args[0];
+export const extractBillableDataFromNote = (...args: unknown[]) => args[0];
+export const validateAssessmentRequirements = (...args: unknown[]) => args[0];
+export const validateTreatmentPlanLink = (...args: unknown[]) => args[0];
+export const buildGoldenThreadSummary = (...args: unknown[]) => args[0];
