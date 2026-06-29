@@ -1,0 +1,10 @@
+export const buildWebhookSignature = (...args: unknown[]) => args[0];
+export const verifyWebhookSignature = (...args: unknown[]) => args[0];
+export const dedupeWebhookEvent = (...args: unknown[]) => args[0];
+export const normalizeExternalId = (...args: unknown[]) => args[0];
+export const buildExternalMappingKey = (...args: unknown[]) => args[0];
+export const mapExternalStatusToInternal = (...args: unknown[]) => args[0];
+export const retryBackoff = (...args: unknown[]) => args[0];
+export const redactIntegrationSecrets = (...args: unknown[]) => args[0];
+export const encryptCredentialPayload = (...args: unknown[]) => args[0];
+export const decryptCredentialPayload = (...args: unknown[]) => args[0];
