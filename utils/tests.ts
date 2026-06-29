@@ -1,0 +1,13 @@
+export const mockClient = (...args: unknown[]) => args[0];
+export const mockAppointment = (...args: unknown[]) => args[0];
+export const mockClinicalNote = (...args: unknown[]) => args[0];
+export const mockCharge = (...args: unknown[]) => args[0];
+export const mockClaim = (...args: unknown[]) => args[0];
+export const mockPayment = (...args: unknown[]) => args[0];
+export const mockLedgerEntry = (...args: unknown[]) => args[0];
+export const mockWorkqueueItem = (...args: unknown[]) => args[0];
+export const buildTestTenant = (...args: unknown[]) => args[0];
+export const buildTestUserWithRole = (...args: unknown[]) => args[0];
+export const assertLedgerBalanced = (...args: unknown[]) => args[0];
+export const assertAuditLogWritten = (...args: unknown[]) => args[0];
+export const assertWorkqueueCreated = (...args: unknown[]) => args[0];
