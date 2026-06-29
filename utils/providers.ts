@@ -1,0 +1,12 @@
+export const formatProviderName = (...args: unknown[]) => args[0];
+export const formatProviderCredentials = (...args: unknown[]) => args[0];
+export const validateNpi = (...args: unknown[]) => args[0];
+export const formatNpi = (...args: unknown[]) => args[0];
+export const validateTaxonomyCode = (...args: unknown[]) => args[0];
+export const isProviderLicenseExpired = (...args: unknown[]) => args[0];
+export const isProviderEnrollmentActiveForDos = (...args: unknown[]) => args[0];
+export const canProviderBillPayer = (...args: unknown[]) => args[0];
+export const getRenderingProvider = (...args: unknown[]) => args[0];
+export const getBillingProvider = (...args: unknown[]) => args[0];
+export const getSupervisingProvider = (...args: unknown[]) => args[0];
+export const detectCredentialingIssue = (...args: unknown[]) => args[0];
