@@ -50,6 +50,42 @@ export class ServiceError extends Error {
   }
 }
 
+function statusColumnFor(table: string): string {
+  switch (table) {
+    case "charges":
+      return "charge_status";
+    case "claims":
+      return "claim_status";
+    case "claim_batches":
+      return "batch_status";
+    default:
+      return "status";
+  }
+}
+
+function workqueueSourceObjectType(sourceType: string): string {
+  switch (sourceType) {
+    case "clients":
+      return "Clients";
+    case "appointments":
+      return "Appointments";
+    case "charges":
+      return "charge";
+    case "claims":
+      return "Claims";
+    case "claim_batches":
+      return "Claims_batch";
+    case "eligibility_checks":
+      return "eligibility";
+    case "payments":
+      return "payment";
+    case "providers":
+      return "Providers";
+    default:
+      return sourceType;
+  }
+}
+
 export abstract class TherassistantService {
   protected constructor(
     protected readonly db: Db,
@@ -68,6 +104,10 @@ export abstract class TherassistantService {
 
   protected actorUserId(): string | null {
     return this.context.actorUserId ?? null;
+  }
+
+  protected statusColumn(table: string): string {
+    return statusColumnFor(table);
   }
 
   protected scopedPayload<T extends Record<string, unknown>>(payload: T): Partial<T> & { tenant_id: string } {
@@ -99,7 +139,6 @@ export abstract class TherassistantService {
       .update(removeUndefined(payload))
       .eq("id", id)
       .eq("tenant_id", this.tenantId())
-      .is("deleted_at", null)
       .select("*")
       .single();
 
@@ -118,7 +157,6 @@ export abstract class TherassistantService {
       .select("*")
       .eq("id", id)
       .eq("tenant_id", this.tenantId())
-      .is("deleted_at", null)
       .maybeSingle();
 
     if (error) {
@@ -135,11 +173,10 @@ export abstract class TherassistantService {
     let query = this.db
       .from(table)
       .select("*")
-      .eq("tenant_id", this.tenantId())
-      .is("deleted_at", null);
+      .eq("tenant_id", this.tenantId());
 
     if (options?.status) {
-      query = query.eq("status", options.status);
+      query = query.eq(statusColumnFor(table), options.status);
     }
 
     if (options?.orderBy) {
@@ -163,15 +200,7 @@ export abstract class TherassistantService {
 
   protected async softDelete(table: string, id: string, reason?: string): Promise<void> {
     const previous = await this.findById(table, id);
-
-    await this.updateOne(table, id, {
-      deleted_at: new Date().toISOString(),
-      status: "deleted",
-      data: {
-        ...(previous?.data ?? {}),
-        deletedReason: reason ?? null,
-      },
-    });
+    await this.updateOne(table, id, { archived_at: new Date().toISOString() });
 
     await this.writeAuditLog({
       targetType: table,
@@ -192,17 +221,19 @@ export abstract class TherassistantService {
   }): Promise<string | null> {
     const payload = {
       tenant_id: this.tenantId(),
-      actor_user_id: this.actorUserId(),
-      target_type: input.targetType,
-      target_id: input.targetId ?? null,
+      user_id: this.actorUserId(),
       action: input.action,
-      old_values: input.oldValues ?? null,
-      new_values: input.newValues ?? null,
-      metadata: input.metadata ?? {},
+      object_type: input.targetType,
+      object_id: input.targetId ?? null,
+      before_value: input.oldValues ?? null,
+      after_value: input.newValues ?? null,
+      event_type: input.action,
+      event_summary: `${input.action} ${input.targetType}`,
+      event_metadata: input.metadata ?? {},
     };
 
     const { data, error } = await this.db
-      .from("audits_logs")
+      .from("audit_logs")
       .insert(payload)
       .select("id")
       .single();
@@ -219,12 +250,12 @@ export abstract class TherassistantService {
 
     const { error } = await this.db.from("status_history").insert({
       tenant_id: this.tenantId(),
-      target_type: input.targetType,
-      target_id: input.targetId,
-      from_status: input.fromStatus ?? null,
-      to_status: input.toStatus,
-      reason: input.reason ?? null,
-      actor_user_id: this.actorUserId(),
+      object_type: input.targetType,
+      object_id: input.targetId,
+      previous_status: input.fromStatus ?? null,
+      new_status: input.toStatus,
+      status_reason: input.reason ?? null,
+      changed_by_user_id: this.actorUserId(),
       metadata: input.metadata ?? {},
     });
 
@@ -241,24 +272,25 @@ export abstract class TherassistantService {
     metadata?: Record<string, unknown>,
   ): Promise<T> {
     const previous = await this.findById<T>(table, id);
-    const updated = await this.updateOne<T>(table, id, { status: toStatus });
+    const statusColumn = statusColumnFor(table);
+    const updated = await this.updateOne<T>(table, id, { [statusColumn]: toStatus });
 
     await this.writeStatusHistory({
       targetType: table,
       targetId: id,
-      fromStatus: previous?.status ?? null,
+      fromStatus: previous ? String(previous[statusColumn] ?? "") || null : null,
       toStatus,
-      reason,
-      metadata,
+      reason: reason ?? null,
+      metadata: metadata ?? {},
     });
 
     await this.writeAuditLog({
       targetType: table,
       targetId: id,
       action: "status_change",
-      oldValues: { status: previous?.status ?? null },
-      newValues: { status: toStatus },
-      metadata: { reason, ...metadata },
+      oldValues: { [statusColumn]: previous?.[statusColumn] ?? null },
+      newValues: { [statusColumn]: toStatus },
+      metadata: { reason: reason ?? null, ...(metadata ?? {}) },
     });
 
     return updated;
@@ -268,16 +300,16 @@ export abstract class TherassistantService {
     assertUuid(input.sourceId, "sourceId");
 
     const item = await this.insertOne("workqueue_items", {
-      name: input.title ?? input.type,
       status: "open",
-      workqueue_type: input.type,
-      source_type: input.sourceType,
-      source_id: input.sourceId,
+      work_type: input.type,
+      source_object_type: workqueueSourceObjectType(input.sourceType),
+      source_object_id: input.sourceId,
       priority: input.priority ?? "normal",
-      assigned_to: input.assignedTo ?? null,
+      assigned_to_user_id: input.assignedTo ?? null,
       due_at: input.dueAt ?? null,
+      title: input.title ?? input.type,
       description: input.description ?? null,
-      data: input.metadata ?? {},
+      context_payload: input.metadata ?? {},
     });
 
     await this.writeAuditLog({

@@ -31,11 +31,14 @@ const normalizeBoolean = (value: unknown): boolean => {
 
 export function mapPreSessionResponseToDashboardFields(response: PreSessionResponse = {}): PreSessionDashboardFields {
   const distress = Number(response.distressRating);
+  const selectedGoalId = response.selectedGoalId ? String(response.selectedGoalId) : null;
+  const selectedGoalLabel = response.selectedGoalLabel ? normalizeText(response.selectedGoalLabel) : null;
+
   return {
     responseStatus: normalizeText(response.responseStatus || 'not_started'),
     focusText: normalizeText(response.focusText),
-    selectedGoalId: response.selectedGoalId ? String(response.selectedGoalId) : undefined,
-    selectedGoalLabel: response.selectedGoalLabel ? normalizeText(response.selectedGoalLabel) : undefined,
+    ...(selectedGoalId ? { selectedGoalId } : {}),
+    ...(selectedGoalLabel ? { selectedGoalLabel } : {}),
     distressRating: Number.isFinite(distress) ? distress : null,
     alertFlag: normalizeBoolean(response.alertFlag) || Boolean(normalizeText(response.alertDetails)),
     alertDetails: normalizeText(response.alertDetails),
