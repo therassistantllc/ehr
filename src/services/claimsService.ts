@@ -91,6 +91,20 @@ export class ClaimsService extends TherassistantService {
       ? money(serviceLines.reduce((sum, line) => sum + money(line.chargeAmount) * (Number(line.units ?? 1) || 1), 0))
       : money(latestCharge.charge_amount);
 
+    let payerId = options.payerId ?? (typeof latestCharge.payer_id === "string" ? latestCharge.payer_id : null);
+    if (!payerId && typeof latestCharge.insurance_policy_id === "string") {
+      const { data: policy, error } = await this.db
+        .from("client_case_policies")
+        .select("payer_id")
+        .eq("tenant_id", this.tenantId())
+        .eq("id", latestCharge.insurance_policy_id)
+        .is("deleted_at", null)
+        .maybeSingle();
+
+      if (error) throw new ServiceError("Failed to load payer from selected insurance policy.", error);
+      payerId = typeof policy?.payer_id === "string" ? policy.payer_id : null;
+    }
+
     const claim = await this.insertOne("claims", {
       name: `Claim ${text(latestCharge.service_date)}`.trim(),
       status: "draft" satisfies ClaimStatus,
@@ -99,7 +113,7 @@ export class ClaimsService extends TherassistantService {
       provider_id: options.renderingProviderId ?? latestCharge.provider_id ?? null,
       rendering_provider_id: options.renderingProviderId ?? latestCharge.provider_id ?? null,
       billing_provider_id: options.billingProviderId ?? null,
-      payer_id: options.payerId ?? latestCharge.payer_id ?? null,
+      payer_id: payerId,
       service_date: latestCharge.service_date,
       place_of_service: options.placeOfService ?? latestCharge.place_of_service ?? serviceLines[0]?.placeOfService ?? null,
       frequency_code: options.frequencyCode ?? "1",
@@ -117,7 +131,7 @@ export class ClaimsService extends TherassistantService {
     });
 
     await this.createClaimLines(claim, serviceLines, diagnosisCodes);
-    await this.updateOne("charges", latestCharge.id, { status: "claimed", claim_id: claim.id });
+    await this.updateOne("charges", latestCharge.id, { status: "claimed", claim_id: claim.id, payer_id: payerId });
 
     const validation = await this.validateClaim(claim.id);
     const finalClaim = validation.valid
