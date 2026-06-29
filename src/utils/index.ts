@@ -140,7 +140,7 @@ function runUtility(name: string, args: any[]): any {
     case 'formatCount': return new Intl.NumberFormat().format(toNumber(args[0]));
     case 'cn': return args.flat().filter(Boolean).join(' ');
     case 'buildSearchTokens': return normalizeTokenValue(args[0]).split(' ').filter(Boolean);
-    case 'highlightSearchMatch': { const t = normalizeText(args[0]); const q = normalizeText(args[1]); return q ? t.replace(new RegExp(`(${q})`, 'ig', '<mark>$1</mark>') : t; }
+    case 'highlightSearchMatch': { const t = normalizeText(args[0]); const q = normalizeText(args[1]); return q ? t.replace(new RegExp(`(${q})`, 'ig', ),'<mark>$1</mark>') : t; }
     case 'buildPaginationParams': { const page = Math.max(1, toNumber(args[0]?.page ?? args[0], 1)); const limit = Math.max(1, toNumber(args[0]?.limit ?? args[1], 25)); return { page, limit, offset: (page - 1) * limit }; }
     case 'buildSortParams': { const r = firstRecord(args); return { field: r.field ?? args[0] ?? 'created_at', direction: r.direction ?? args[1] ?? 'desc' }; }
     case 'exportToCsv': { const items = asArray(args[0]); if (!items.length) return ''; const h = Object.keys(items[0]); return [h.join(','), ...items.map((i) => h.map((x) => JSON.stringify(i[x] ?? '')).join(','))].join('\n'); }
