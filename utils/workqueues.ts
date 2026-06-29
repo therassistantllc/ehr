@@ -1,0 +1,12 @@
+export const formatWorkqueueType = (...args: unknown[]) => args[0];
+export const formatWorkqueueStatus = (...args: unknown[]) => args[0];
+export const formatWorkqueuePriority = (...args: unknown[]) => args[0];
+export const getWorkqueuePriorityScore = (...args: unknown[]) => args[0];
+export const calculateWorkqueueDueDate = (...args: unknown[]) => args[0];
+export const buildWorkqueueSourceKey = (...args: unknown[]) => args[0];
+export const detectDuplicateOpenTask = (...args: unknown[]) => args[0];
+export const getDefaultAssignee = (...args: unknown[]) => args[0];
+export const shouldCreateWorkqueueItem = (...args: unknown[]) => args[0];
+export const buildWorkqueueItemPayload = (...args: unknown[]) => args[0];
+export const groupWorkqueueByType = (...args: unknown[]) => args[0];
+export const groupWorkqueueByAssignee = (...args: unknown[]) => args[0];
