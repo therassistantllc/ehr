@@ -1,0 +1,12 @@
+export const parse835Date = (...args: unknown[]) => args[0];
+export const normalizeEraPayerName = (...args: unknown[]) => args[0];
+export const normalizeEraClaimNumber = (...args: unknown[]) => args[0];
+export const matchEraClaimToInternalClaim = (...args: unknown[]) => args[0];
+export const matchEraServiceLine = (...args: unknown[]) => args[0];
+export const calculateEraPaymentTotal = (...args: unknown[]) => args[0];
+export const calculateEraAdjustmentTotal = (...args: unknown[]) => args[0];
+export const mapEraClaimStatus = (...args: unknown[]) => args[0];
+export const extractCarcCodes = (...args: unknown[]) => args[0];
+export const extractRarcCodes = (...args: unknown[]) => args[0];
+export const detectEraDuplicate = (...args: unknown[]) => args[0];
+export const buildEraPostingPreview = (...args: unknown[]) => args[0];
