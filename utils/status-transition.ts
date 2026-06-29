@@ -1,0 +1,9 @@
+export const canTransitionStatus = (...args: unknown[]) => args[0];
+export const getAllowedChargeTransitions = (...args: unknown[]) => args[0];
+export const getAllowedClaimTransitions = (...args: unknown[]) => args[0];
+export const getAllowedPaymentTransitions = (...args: unknown[]) => args[0];
+export const getAllowedWorkqueueTransitions = (...args: unknown[]) => args[0];
+export const getNextClaimStatus = (...args: unknown[]) => args[0];
+export const getNextChargeStatus = (...args: unknown[]) => args[0];
+export const requiresAuditForTransition = (...args: unknown[]) => args[0];
+export const buildStatusHistoryPayload = (...args: unknown[]) => args[0];
