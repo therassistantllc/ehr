@@ -1,0 +1,15 @@
+export const getClaimStatusLabel = (...args: unknown[]) => args[0];
+export const getClaimStatusColor = (...args: unknown[]) => args[0];
+export const isClaimEditable = (...args: unknown[]) => args[0];
+export const canSubmitClaim = (...args: unknown[]) => args[0];
+export const canBatchClaim = (...args: unknown[]) => args[0];
+export const calculateClaimTotalCharges = (...args: unknown[]) => args[0];
+export const calculateClaimOpenBalance = (...args: unknown[]) => args[0];
+export const calculateClaimAge = (...args: unknown[]) => args[0];
+export const getClaimAgingBucket = (...args: unknown[]) => args[0];
+export const formatPayerClaimNumber = (...args: unknown[]) => args[0];
+export const buildClaimControlNumber = (...args: unknown[]) => args[0];
+export const buildclientControlNumber = (...args: unknown[]) => args[0];
+export const validateClaimRequiredFields = (...args: unknown[]) => args[0];
+export const mapChargeToClaim = (...args: unknown[]) => args[0];
+export const mapClaimTo837PData = (...args: unknown[]) => args[0];
