@@ -5,9 +5,9 @@
 
 do $$
 declare
-  table_name text;
+  v_table_name text;
 begin
-  foreach table_name in array array[
+  foreach v_table_name in array array[
     'clients',
     'providers',
     'appointments',
@@ -31,15 +31,15 @@ begin
     'status_history',
     'audits_logs'
   ] loop
-    if to_regclass(format('public.%I', table_name)) is not null
+    if to_regclass(format('public.%I', v_table_name)) is not null
        and not exists (
          select 1
-         from information_schema.columns
-         where table_schema = 'public'
-           and table_name = table_name
-           and column_name = 'deleted_at'
+         from information_schema.columns c
+         where c.table_schema = 'public'
+           and c.table_name = v_table_name
+           and c.column_name = 'deleted_at'
        ) then
-      execute format('alter table public.%I add column deleted_at timestamptz null', table_name);
+      execute format('alter table public.%I add column deleted_at timestamptz null', v_table_name);
     end if;
   end loop;
 end $$;
