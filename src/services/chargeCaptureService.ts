@@ -99,12 +99,12 @@ function normalizeServiceLines(lines: ServiceLineInput[], fallbackServiceDate?: 
     .map((line) => {
       const procedureCode = normalizeCode(line.procedureCode ?? "");
       if (!procedureCode) return null;
-      const from = line.serviceDateFrom ?? fallbackServiceDate ?? undefined;
-      const normalizedFrom = from ? serviceDate(from) : undefined;
-      return {
+
+      const from = line.serviceDateFrom ?? fallbackServiceDate ?? null;
+      const normalizedFrom = from ? serviceDate(from) : null;
+      const normalizedTo = line.serviceDateTo ? serviceDate(line.serviceDateTo) : normalizedFrom;
+      const normalized: ServiceLineInput = {
         procedureCode,
-        serviceDateFrom: normalizedFrom,
-        serviceDateTo: line.serviceDateTo ? serviceDate(line.serviceDateTo) : normalizedFrom,
         modifiers: (line.modifiers ?? []).map(normalizeCode).filter(Boolean),
         diagnosisPointers: line.diagnosisPointers?.length ? line.diagnosisPointers.map(text).filter(Boolean) : ["1"],
         units: Number(line.units ?? 1) || 1,
@@ -112,7 +112,12 @@ function normalizeServiceLines(lines: ServiceLineInput[], fallbackServiceDate?: 
         placeOfService: line.placeOfService ?? fallbackPos ?? null,
         renderingProviderNpi: line.renderingProviderNpi ?? null,
         authorizationNumber: line.authorizationNumber ?? null,
-      } satisfies ServiceLineInput;
+      };
+
+      if (normalizedFrom) normalized.serviceDateFrom = normalizedFrom;
+      if (normalizedTo) normalized.serviceDateTo = normalizedTo;
+
+      return normalized;
     })
     .filter((line): line is ServiceLineInput => line !== null);
 }
