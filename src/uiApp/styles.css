@@ -83,6 +83,41 @@ button {
   align-content: start;
 }
 
+.data-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  border: 1px solid #dde8e1;
+  border-radius: 16px;
+  padding: 14px 16px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(29, 57, 50, 0.05);
+}
+
+.data-status strong {
+  white-space: nowrap;
+}
+
+.data-status span {
+  color: #50665f;
+  text-align: right;
+}
+
+.data-status.supabase {
+  border-left: 8px solid #4f8170;
+}
+
+.data-status.mock {
+  border-left: 8px solid #c9832d;
+}
+
+.empty-state {
+  margin: 0;
+  padding: 20px;
+  color: #50665f;
+}
+
 .hero {
   background: linear-gradient(135deg, #ffffff, #e7f0eb);
   border: 1px solid #dde8e1;
@@ -329,5 +364,13 @@ th {
 
   .content {
     padding: 18px;
+  }
+
+  .data-status {
+    display: grid;
+  }
+
+  .data-status span {
+    text-align: left;
   }
 }
