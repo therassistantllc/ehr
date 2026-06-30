@@ -17,6 +17,7 @@ import { loadDashboardData, resolveDashboardWorkqueueItem, type DashboardDataMod
 import { mockDashboardSnapshot } from "./mockDashboardData";
 
 type RouteKey = "dashboard" | "workqueues" | "charges" | "claims" | "actions";
+type ScreenAction = ActionScreenDefinition["primaryAction"] | ActionScreenDefinition["secondaryActions"][number];
 
 type NavItem = {
   key: RouteKey;
@@ -63,6 +64,14 @@ function sourceRoute(item: WorkqueueDashboardItem): RouteKey | null {
   return null;
 }
 
+function routeForAction(action: ScreenAction): RouteKey {
+  if (action.routeKey.startsWith("chargeCapture.")) return "charges";
+  if (action.routeKey.startsWith("claims.")) return "claims";
+  if (action.routeKey.startsWith("workqueue.")) return "workqueues";
+  if (action.routeKey.startsWith("eligibility.")) return "workqueues";
+  return "dashboard";
+}
+
 function MetricCard({ metric }: { metric: DashboardMetric }) {
   return (
     <article className="metric-card">
@@ -105,7 +114,7 @@ function WorkqueueTable({ rows, selectedId, onSelect }: { rows: WorkqueueDashboa
         <h2>Open Workqueues</h2>
         <p>Tasks generated from eligibility, charge capture, claims, and batch workflows.</p>
       </header>
-      {rows.length === 0 ? <EmptyRows message="No open workqueue items found." /> : (
+      {rows.length === 0 ? <EmptyRows message="No open workqueue rows exist in Supabase for this tenant right now. The app is connected, but there is nothing active to resolve." /> : (
         <div className="table-wrap">
           <table>
             <thead>
@@ -151,6 +160,7 @@ function WorkqueueDetailPanel({ item, note, resolving, actionStatus, onNoteChang
       <aside className="detail-panel">
         <h2>Workqueue Detail</h2>
         <p>Select an open workqueue item to review the source and resolve the task.</p>
+        <p>If this panel is empty, Supabase currently has no active workqueue rows for the tenant you loaded.</p>
       </aside>
     );
   }
@@ -190,7 +200,7 @@ function ChargeTable({ rows }: { rows: ChargeDashboardRow[] }) {
         <h2>Charge Capture</h2>
         <p>Review documentation, coding, eligibility, and authorization blockers before claim creation.</p>
       </header>
-      {rows.length === 0 ? <EmptyRows message="No charge-capture rows found." /> : (
+      {rows.length === 0 ? <EmptyRows message="No charge-capture rows found. Live Supabase currently has no charges for this tenant." /> : (
         <div className="table-wrap">
           <table>
             <thead>
@@ -274,15 +284,17 @@ function FieldList({ fields }: { fields: UiField[] }) {
   );
 }
 
-function ActionScreenCard({ screen }: { screen: ActionScreenDefinition }) {
+function ActionScreenCard({ screen, onAction }: { screen: ActionScreenDefinition; onAction: (screen: ActionScreenDefinition, action: ScreenAction) => void }) {
   return (
     <article className="screen-card">
       <span>{titleCase(screen.domain)}</span>
       <h3>{screen.title}</h3>
       <p>{screen.description}</p>
       <div className="button-row">
-        <button>{screen.primaryAction.label}</button>
-        {screen.secondaryActions.map((action) => <button className="secondary" key={action.key}>{action.label}</button>)}
+        <button type="button" onClick={() => onAction(screen, screen.primaryAction)}>{screen.primaryAction.label}</button>
+        {screen.secondaryActions.map((action) => (
+          <button className="secondary" key={action.key} type="button" onClick={() => onAction(screen, action)}>{action.label}</button>
+        ))}
       </div>
       {screen.sections.map((section) => (
         <section key={section.key} className="screen-section">
@@ -418,6 +430,13 @@ export function App() {
     setActionStatus(nextRoute ? "Showing related source queue." : "This source type does not have a dedicated screen yet.");
   }
 
+  function handleActionScreenAction(screen: ActionScreenDefinition, action: ScreenAction) {
+    const nextRoute = routeForAction(action);
+    setRoute(nextRoute);
+    setActionStatus(null);
+    setMessage(`${action.label} from ${screen.title} opened ${titleCase(nextRoute)}. Live execution requires a selected source row.`);
+  }
+
   return (
     <div className="app-shell">
       <aside className="sidebar">
@@ -458,7 +477,7 @@ export function App() {
         ) : null}
         {route === "actions" ? (
           <section className="action-grid">
-            {WORKQUEUE_ACTION_SCREENS.map((screen) => <ActionScreenCard key={screen.key} screen={screen} />)}
+            {WORKQUEUE_ACTION_SCREENS.map((screen) => <ActionScreenCard key={screen.key} screen={screen} onAction={handleActionScreenAction} />)}
           </section>
         ) : null}
       </main>
