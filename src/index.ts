@@ -68,22 +68,22 @@ export {
 } from "./services/claimsService";
 
 export {
-  createEligibilityHook,
-  useEligibility,
-  type EligibilityHook,
-} from "./hooks/useEligibility";
+  WorkqueueQueryService,
+  type ChargeDashboardFilters,
+  type ChargeDashboardRow,
+  type ClaimDashboardFilters,
+  type ClaimDashboardRow,
+  type RcmDashboardSnapshot,
+  type WorkqueueDashboardItem,
+  type WorkqueueQueryFilters,
+  type WorkqueueStatus,
+  type WorkqueueSummary,
+} from "./services/workqueueQueryService";
 
-export {
-  createChargeCaptureHook,
-  useChargeCapture,
-  type ChargeCaptureHook,
-} from "./hooks/useChargeCapture";
-
-export {
-  createClaimsHook,
-  useClaims,
-  type ClaimsHook,
-} from "./hooks/useClaims";
+export { createEligibilityHook, useEligibility, type EligibilityHook } from "./hooks/useEligibility";
+export { createChargeCaptureHook, useChargeCapture, type ChargeCaptureHook } from "./hooks/useChargeCapture";
+export { createClaimsHook, useClaims, type ClaimsHook } from "./hooks/useClaims";
+export { createWorkqueueDashboardHook, useWorkqueueDashboard, type WorkqueueDashboardHook } from "./hooks/useWorkqueueDashboard";
 
 export {
   createRcmApiHandlers,
@@ -92,6 +92,21 @@ export {
   type RcmRouteRequest,
   type RcmRouteResponse,
 } from "./api/rcmRoutes";
+
+export { createWorkqueueDashboardApiHandlers, type WorkqueueDashboardApiHandlers } from "./api/workqueueDashboardRoutes";
+
+export {
+  buildDashboardCards,
+  buildRcmDashboardViewModel,
+  buildWorkqueueMetrics,
+  groupChargeRows,
+  groupClaimRows,
+  groupWorkqueueItems,
+  type DashboardCard,
+  type DashboardMetric,
+  type DashboardSection,
+  type RcmDashboardViewModel,
+} from "./adapters/rcmDashboardAdapters";
 
 export {
   RCM_WORKQUEUES,
