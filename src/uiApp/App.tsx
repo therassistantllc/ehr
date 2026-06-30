@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   WORKQUEUE_ACTION_SCREENS,
   buildRcmDashboardUiModel,
@@ -201,7 +201,7 @@ function ActionScreenCard({ screen }: { screen: ActionScreenDefinition }) {
   );
 }
 
-function Sections<T>({ sections, render }: { sections: DashboardSection<T>[]; render: (rows: T[]) => JSX.Element }) {
+function Sections<T>({ sections, render }: { sections: DashboardSection<T>[]; render: (rows: T[]) => ReactNode }) {
   return (
     <div className="section-stack">
       {sections.map((section) => (
