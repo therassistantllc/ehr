@@ -13,10 +13,25 @@ import {
   type WorkqueueDashboardItem,
   type WorkqueueSummary,
 } from "../index";
-import { loadDashboardData, resolveDashboardWorkqueueItem, type DashboardDataMode } from "./dashboardDataLoader";
+import { loadAppUserContext, type AppUserContext, type SettingsSummary } from "./appContext";
+import { loadDashboardData, resolveDashboardWorkqueueItem, type DashboardDataMode, type DashboardLoadOptions } from "./dashboardDataLoader";
 import { mockDashboardSnapshot } from "./mockDashboardData";
 
-type RouteKey = "dashboard" | "workqueues" | "charges" | "claims" | "actions";
+type RouteKey =
+  | "settings"
+  | "auth"
+  | "clients"
+  | "appointments"
+  | "documentation"
+  | "coding"
+  | "charges"
+  | "claims"
+  | "payments"
+  | "collections"
+  | "workqueues"
+  | "dashboard"
+  | "actions";
+
 type ScreenAction = ActionScreenDefinition["primaryAction"] | ActionScreenDefinition["secondaryActions"][number];
 
 type NavItem = {
@@ -25,11 +40,32 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-  { key: "dashboard", label: "Dashboard" },
-  { key: "workqueues", label: "Workqueues" },
-  { key: "charges", label: "Charge Capture" },
+  { key: "settings", label: "Settings" },
+  { key: "auth", label: "Login / Auth" },
+  { key: "clients", label: "Clients" },
+  { key: "appointments", label: "Appointments" },
+  { key: "documentation", label: "Documentation" },
+  { key: "coding", label: "Coding" },
+  { key: "charges", label: "Charges" },
   { key: "claims", label: "Claims" },
+  { key: "payments", label: "Payments" },
+  { key: "collections", label: "Collections" },
+  { key: "workqueues", label: "Workqueues" },
+  { key: "dashboard", label: "RCM Dashboard" },
   { key: "actions", label: "Action Screens" },
+];
+
+const settingsDomains = [
+  "Practice identity",
+  "Users, roles, and permissions",
+  "Providers and credentialing",
+  "Payers and payer profiles",
+  "Service locations",
+  "Billing defaults",
+  "Claims and EDI setup",
+  "Patient portal",
+  "Security and audit",
+  "Integrations",
 ];
 
 function titleCase(value: string): string {
@@ -72,6 +108,13 @@ function routeForAction(action: ScreenAction): RouteKey {
   return "dashboard";
 }
 
+function dashboardOptions(context: AppUserContext | null): DashboardLoadOptions {
+  const options: DashboardLoadOptions = {};
+  if (context?.selectedTenantId) options.tenantId = context.selectedTenantId;
+  if (context?.userId) options.actorUserId = context.userId;
+  return options;
+}
+
 function MetricCard({ metric }: { metric: DashboardMetric }) {
   return (
     <article className="metric-card">
@@ -103,8 +146,112 @@ function DataStatus({ loading, mode, message }: { loading: boolean; mode: Dashbo
   );
 }
 
+function AppContextBar({ context, onTenantChange }: { context: AppUserContext | null; onTenantChange: (tenantId: string) => void }) {
+  return (
+    <section className="context-bar">
+      <div>
+        <strong>{context?.selectedTenantName ?? "No tenant selected"}</strong>
+        <span>{context?.message ?? "Loading app context."}</span>
+      </div>
+      <label>
+        <span>Tenant</span>
+        <select value={context?.selectedTenantId ?? ""} onChange={(event) => onTenantChange(event.target.value)}>
+          {context?.tenants.length ? null : <option value="">No tenants available</option>}
+          {context?.tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
+        </select>
+      </label>
+    </section>
+  );
+}
+
 function EmptyRows({ message }: { message: string }) {
   return <p className="empty-state">{message}</p>;
+}
+
+function SummaryGrid({ summary }: { summary: SettingsSummary }) {
+  const rows = [
+    ["Practices", summary.practices],
+    ["Providers", summary.providers],
+    ["Payers", summary.payers],
+    ["Payer Profiles", summary.payerProfiles],
+    ["System Settings", summary.systemSettings],
+  ] as const;
+
+  return (
+    <section className="metrics-grid">
+      {rows.map(([label, value]) => (
+        <article className="metric-card" key={label}>
+          <span>{label}</span>
+          <strong>{value}</strong>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function SettingsView({ context }: { context: AppUserContext | null }) {
+  return (
+    <section className="page-stack">
+      <section className="hero">
+        <div>
+          <span>Foundation</span>
+          <h1>Settings</h1>
+          <p>Tenant setup comes first: practice identity, users, providers, payers, service locations, billing defaults, claims/EDI, portal, and security.</p>
+        </div>
+      </section>
+      <SummaryGrid summary={context?.settingsSummary ?? { practices: 0, providers: 0, payers: 0, payerProfiles: 0, systemSettings: 0 }} />
+      <section className="settings-grid">
+        {settingsDomains.map((domain) => (
+          <article className="screen-card" key={domain}>
+            <span>Settings Area</span>
+            <h3>{domain}</h3>
+            <p>Foundation screen placeholder. This will be wired to live tables in the next settings sub-batches.</p>
+          </article>
+        ))}
+      </section>
+    </section>
+  );
+}
+
+function AuthView({ context }: { context: AppUserContext | null }) {
+  return (
+    <section className="page-stack">
+      <section className="hero">
+        <div>
+          <span>Access</span>
+          <h1>Login / Auth Context</h1>
+          <p>Current user, selected tenant, roles, and permissions. This replaces hardcoded tenant-only development flow.</p>
+        </div>
+      </section>
+      <section className="panel padded-panel">
+        <dl className="detail-list two-column-list">
+          <div><dt>Auth Mode</dt><dd>{context?.authMode ?? "loading"}</dd></div>
+          <div><dt>User Email</dt><dd>{context?.email ?? "No active Supabase session"}</dd></div>
+          <div><dt>User ID</dt><dd>{context?.userId ?? "—"}</dd></div>
+          <div><dt>Tenant</dt><dd>{context?.selectedTenantName ?? "—"}</dd></div>
+          <div><dt>Roles</dt><dd>{context?.roles.length ? context.roles.join(", ") : "Pending RBAC wiring"}</dd></div>
+          <div><dt>Permissions</dt><dd>{context?.permissions.length ? context.permissions.join(", ") : "Pending RBAC wiring"}</dd></div>
+        </dl>
+      </section>
+    </section>
+  );
+}
+
+function PlaceholderPage({ title, description }: { title: string; description: string }) {
+  return (
+    <section className="page-stack">
+      <section className="hero">
+        <div>
+          <span>Workflow</span>
+          <h1>{title}</h1>
+          <p>{description}</p>
+        </div>
+      </section>
+      <section className="panel padded-panel">
+        <p className="empty-state">Next sub-batch will port the existing old-repo concepts into this workflow step and wire them to the current Supabase schema.</p>
+      </section>
+    </section>
+  );
 }
 
 function WorkqueueTable({ rows, selectedId, onSelect }: { rows: WorkqueueDashboardItem[]; selectedId: string | null; onSelect: (item: WorkqueueDashboardItem) => void }) {
@@ -332,7 +479,7 @@ function DashboardView({ uiModel }: { uiModel: ReturnType<typeof buildRcmDashboa
     <>
       <section className="hero">
         <div>
-          <span>THERASSISTANT EHR</span>
+          <span>Back Office</span>
           <h1>RCM Workqueue Dashboard</h1>
           <p>Eligibility, charge capture, claim validation, and batch submission queues in one operational view.</p>
         </div>
@@ -348,7 +495,8 @@ function DashboardView({ uiModel }: { uiModel: ReturnType<typeof buildRcmDashboa
 }
 
 export function App() {
-  const [route, setRoute] = useState<RouteKey>("dashboard");
+  const [route, setRoute] = useState<RouteKey>("settings");
+  const [appContext, setAppContext] = useState<AppUserContext | null>(null);
   const [snapshot, setSnapshot] = useState<RcmDashboardSnapshot>(mockDashboardSnapshot);
   const [mode, setMode] = useState<DashboardDataMode>("mock");
   const [message, setMessage] = useState("Preparing dashboard data.");
@@ -363,18 +511,27 @@ export function App() {
     [snapshot.workqueueItems, selectedWorkqueueId],
   );
 
+  async function refreshAppContext(preferredTenantId?: string | null) {
+    const loadedContext = await loadAppUserContext(preferredTenantId);
+    setAppContext(loadedContext);
+    return loadedContext;
+  }
+
+  async function refreshDashboard(context: AppUserContext | null) {
+    setLoading(true);
+    const loaded = await loadDashboardData(dashboardOptions(context));
+    setSnapshot(loaded.snapshot);
+    setMode(loaded.mode);
+    setMessage(`${context?.message ?? "App context not loaded."} ${loaded.message}`);
+    setLoading(false);
+  }
+
   useEffect(() => {
     let active = true;
-
-    setLoading(true);
-    loadDashboardData().then((loaded) => {
+    refreshAppContext().then((context) => {
       if (!active) return;
-      setSnapshot(loaded.snapshot);
-      setMode(loaded.mode);
-      setMessage(loaded.message);
-      setLoading(false);
+      refreshDashboard(context);
     });
-
     return () => {
       active = false;
     };
@@ -387,6 +544,11 @@ export function App() {
     }
   }, [selectedWorkqueueId, selectedWorkqueueItem]);
 
+  async function handleTenantChange(tenantId: string) {
+    const context = await refreshAppContext(tenantId);
+    await refreshDashboard(context);
+  }
+
   async function handleResolveWorkqueue() {
     if (!selectedWorkqueueItem) return;
 
@@ -395,11 +557,9 @@ export function App() {
 
     try {
       if (mode === "supabase") {
-        await resolveDashboardWorkqueueItem(selectedWorkqueueItem.id, resolutionNote);
-        const loaded = await loadDashboardData();
-        setSnapshot(loaded.snapshot);
-        setMode(loaded.mode);
-        setMessage(`Resolved ${selectedWorkqueueItem.title}. ${loaded.message}`);
+        await resolveDashboardWorkqueueItem(selectedWorkqueueItem.id, resolutionNote, dashboardOptions(appContext));
+        await refreshDashboard(appContext);
+        setMessage(`Resolved ${selectedWorkqueueItem.title}.`);
       } else {
         setSnapshot((current) => removeWorkqueueItem(current, selectedWorkqueueItem.id));
         setMessage(`Resolved ${selectedWorkqueueItem.title} locally in mock mode.`);
@@ -453,7 +613,16 @@ export function App() {
         </nav>
       </aside>
       <main className="content">
+        <AppContextBar context={appContext} onTenantChange={handleTenantChange} />
         <DataStatus loading={loading} mode={mode} message={message} />
+        {route === "settings" ? <SettingsView context={appContext} /> : null}
+        {route === "auth" ? <AuthView context={appContext} /> : null}
+        {route === "clients" ? <PlaceholderPage title="Clients" description="Client demographics, insurance policies, authorizations, clinical profile, ledger, documents, and notes/history." /> : null}
+        {route === "appointments" ? <PlaceholderPage title="Appointments" description="Calendar, appointment status, telehealth or in-person status, client check-in, pre-session questions, On my way, and I’m here." /> : null}
+        {route === "documentation" ? <PlaceholderPage title="Documentation" description="Assessments, treatment plans, session notes, Golden Thread checks, signed-note status, and clinical documentation readiness." /> : null}
+        {route === "coding" ? <PlaceholderPage title="Coding" description="CPT/HCPCS selection, diagnosis linkage, units, modifiers, payer rules, and documentation-to-code validation." /> : null}
+        {route === "payments" ? <PlaceholderPage title="Payments" description="ERA/EOB posting, manual posting, historical payment posting, adjustments, patient responsibility, and ledger posting." /> : null}
+        {route === "collections" ? <PlaceholderPage title="Collections" description="Patient balances, statements, payment plans, collections assistance, refunds, credits, and reporting." /> : null}
         {route === "dashboard" ? <DashboardView uiModel={uiModel} /> : null}
         {route === "workqueues" ? (
           <section className="workqueue-layout">
