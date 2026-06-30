@@ -8,21 +8,26 @@ import { mockDashboardSnapshot } from "./mockDashboardData";
 
 export type DashboardDataMode = "supabase" | "mock";
 
+export type DashboardLoadOptions = {
+  tenantId?: string | null;
+  actorUserId?: string | null;
+};
+
 export type LoadedDashboardData = {
   snapshot: RcmDashboardSnapshot;
   mode: DashboardDataMode;
   message: string;
 };
 
-const requiredEnvKeys = ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY", "VITE_THERASSISTANT_TENANT_ID"] as const;
+const requiredEnvKeys = ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"] as const;
 
 function envValue(key: string): string | undefined {
   const value = import.meta.env[key];
   return typeof value === "string" && value.length > 0 ? value : undefined;
 }
 
-function serviceContext(): ServiceContext {
-  const tenantId = envValue("VITE_THERASSISTANT_TENANT_ID");
+function serviceContext(options: DashboardLoadOptions = {}): ServiceContext {
+  const tenantId = options.tenantId ?? envValue("VITE_THERASSISTANT_TENANT_ID");
 
   if (!tenantId) {
     throw new Error("Missing tenant id configuration.");
@@ -30,7 +35,7 @@ function serviceContext(): ServiceContext {
 
   return {
     tenantId,
-    actorUserId: envValue("VITE_THERASSISTANT_ACTOR_USER_ID") ?? null,
+    actorUserId: options.actorUserId ?? envValue("VITE_THERASSISTANT_ACTOR_USER_ID") ?? null,
   };
 }
 
@@ -38,7 +43,7 @@ function missingEnvKeys(): string[] {
   return requiredEnvKeys.filter((key) => !envValue(key));
 }
 
-function createDashboardService(): WorkqueueQueryService {
+function createDashboardService(options: DashboardLoadOptions = {}): WorkqueueQueryService {
   const supabaseUrl = envValue("VITE_SUPABASE_URL");
   const supabaseAnonKey = envValue("VITE_SUPABASE_ANON_KEY");
 
@@ -47,10 +52,10 @@ function createDashboardService(): WorkqueueQueryService {
   }
 
   const db = createTherassistantSupabaseClient({ supabaseUrl, supabaseAnonKey });
-  return new WorkqueueQueryService(db, serviceContext());
+  return new WorkqueueQueryService(db, serviceContext(options));
 }
 
-export async function loadDashboardData(): Promise<LoadedDashboardData> {
+export async function loadDashboardData(options: DashboardLoadOptions = {}): Promise<LoadedDashboardData> {
   const missing = missingEnvKeys();
 
   if (missing.length > 0) {
@@ -62,7 +67,7 @@ export async function loadDashboardData(): Promise<LoadedDashboardData> {
   }
 
   try {
-    const service = createDashboardService();
+    const service = createDashboardService(options);
     const snapshot = await service.getDashboardSnapshot();
 
     return {
@@ -81,7 +86,7 @@ export async function loadDashboardData(): Promise<LoadedDashboardData> {
   }
 }
 
-export async function resolveDashboardWorkqueueItem(workqueueItemId: string, note: string): Promise<void> {
-  const service = createDashboardService();
+export async function resolveDashboardWorkqueueItem(workqueueItemId: string, note: string, options: DashboardLoadOptions = {}): Promise<void> {
+  const service = createDashboardService(options);
   await service.resolveWorkqueueItem(workqueueItemId, note);
 }
