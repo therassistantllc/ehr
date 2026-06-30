@@ -50,11 +50,14 @@ export async function loadDashboardData(): Promise<LoadedDashboardData> {
   }
 
   try {
-    const db = createTherassistantSupabaseClient({
-      supabaseUrl: envValue("VITE_SUPABASE_URL"),
-      supabaseAnonKey: envValue("VITE_SUPABASE_ANON_KEY"),
-    });
+    const supabaseUrl = envValue("VITE_SUPABASE_URL");
+    const supabaseAnonKey = envValue("VITE_SUPABASE_ANON_KEY");
 
+    if (!supabaseUrl || !supabaseAnonKey) {
+      throw new Error("Missing Supabase dashboard configuration.");
+    }
+
+    const db = createTherassistantSupabaseClient({ supabaseUrl, supabaseAnonKey });
     const service = new WorkqueueQueryService(db, serviceContext());
     const snapshot = await service.getDashboardSnapshot();
 
