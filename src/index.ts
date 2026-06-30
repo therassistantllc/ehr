@@ -109,6 +109,35 @@ export {
 } from "./adapters/rcmDashboardAdapters";
 
 export {
+  buildRcmDashboardUiModel,
+  type RcmDashboardUiModel,
+} from "./adapters/rcmDashboardUiAdapter";
+
+export {
+  buildRcmDashboardSpec,
+  sectionCount,
+  CHARGE_TABLE_SPEC,
+  CLAIM_TABLE_SPEC,
+  WORKQUEUE_TABLE_SPEC,
+  type DashboardRenderableRows,
+  type UiAction,
+  type UiDashboardSpec,
+  type UiDensity,
+  type UiField,
+  type UiIntent,
+  type UiTableSpec,
+} from "./ui/rcmDashboardComponents";
+
+export {
+  WORKQUEUE_ACTION_SCREENS,
+  getActionScreenDefinition,
+  getActionScreenForRoute,
+  type ActionScreenDefinition,
+  type ActionScreenField,
+  type ActionScreenSection,
+} from "./ui/workqueueActionScreens";
+
+export {
   RCM_WORKQUEUES,
   buildChargeCaptureFilters,
   getRcmWorkqueueDefinition,
