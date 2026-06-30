@@ -66,3 +66,40 @@ export {
   type ClaimValidationIssue,
   type ClaimValidationSeverity,
 } from "./services/claimsService";
+
+export {
+  createEligibilityHook,
+  useEligibility,
+  type EligibilityHook,
+} from "./hooks/useEligibility";
+
+export {
+  createChargeCaptureHook,
+  useChargeCapture,
+  type ChargeCaptureHook,
+} from "./hooks/useChargeCapture";
+
+export {
+  createClaimsHook,
+  useClaims,
+  type ClaimsHook,
+} from "./hooks/useClaims";
+
+export {
+  createRcmApiHandlers,
+  type RcmApiHandlers,
+  type RcmRouteHandler,
+  type RcmRouteRequest,
+  type RcmRouteResponse,
+} from "./api/rcmRoutes";
+
+export {
+  RCM_WORKQUEUES,
+  buildChargeCaptureFilters,
+  getRcmWorkqueueDefinition,
+  type RcmWorkqueueDefinition,
+  type WorkqueueAction,
+  type WorkqueueActionKind,
+  type WorkqueueColumn,
+  type WorkqueueDomain,
+} from "./workqueues/rcmWorkqueues";
