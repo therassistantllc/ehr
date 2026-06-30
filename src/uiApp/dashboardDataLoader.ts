@@ -38,6 +38,18 @@ function missingEnvKeys(): string[] {
   return requiredEnvKeys.filter((key) => !envValue(key));
 }
 
+function createDashboardService(): WorkqueueQueryService {
+  const supabaseUrl = envValue("VITE_SUPABASE_URL");
+  const supabaseAnonKey = envValue("VITE_SUPABASE_ANON_KEY");
+
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase dashboard configuration.");
+  }
+
+  const db = createTherassistantSupabaseClient({ supabaseUrl, supabaseAnonKey });
+  return new WorkqueueQueryService(db, serviceContext());
+}
+
 export async function loadDashboardData(): Promise<LoadedDashboardData> {
   const missing = missingEnvKeys();
 
@@ -50,15 +62,7 @@ export async function loadDashboardData(): Promise<LoadedDashboardData> {
   }
 
   try {
-    const supabaseUrl = envValue("VITE_SUPABASE_URL");
-    const supabaseAnonKey = envValue("VITE_SUPABASE_ANON_KEY");
-
-    if (!supabaseUrl || !supabaseAnonKey) {
-      throw new Error("Missing Supabase dashboard configuration.");
-    }
-
-    const db = createTherassistantSupabaseClient({ supabaseUrl, supabaseAnonKey });
-    const service = new WorkqueueQueryService(db, serviceContext());
+    const service = createDashboardService();
     const snapshot = await service.getDashboardSnapshot();
 
     return {
@@ -75,4 +79,9 @@ export async function loadDashboardData(): Promise<LoadedDashboardData> {
       message: `Using mock data. ${message}`,
     };
   }
+}
+
+export async function resolveDashboardWorkqueueItem(workqueueItemId: string, note: string): Promise<void> {
+  const service = createDashboardService();
+  await service.resolveWorkqueueItem(workqueueItemId, note);
 }
