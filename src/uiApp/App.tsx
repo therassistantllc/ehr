@@ -1,4 +1,4 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   WORKQUEUE_ACTION_SCREENS,
   buildRcmDashboardUiModel,
@@ -8,9 +8,11 @@ import {
   type DashboardCard,
   type DashboardMetric,
   type DashboardSection,
+  type RcmDashboardSnapshot,
   type UiField,
   type WorkqueueDashboardItem,
 } from "../index";
+import { loadDashboardData, type DashboardDataMode } from "./dashboardDataLoader";
 import { mockDashboardSnapshot } from "./mockDashboardData";
 
 type RouteKey = "dashboard" | "workqueues" | "charges" | "claims" | "actions";
@@ -58,6 +60,19 @@ function WorkCard({ card }: { card: DashboardCard }) {
   );
 }
 
+function DataStatus({ loading, mode, message }: { loading: boolean; mode: DashboardDataMode; message: string }) {
+  return (
+    <section className={`data-status ${mode}`}>
+      <strong>{loading ? "Loading dashboard data" : mode === "supabase" ? "Live Supabase data" : "Mock dashboard data"}</strong>
+      <span>{message}</span>
+    </section>
+  );
+}
+
+function EmptyRows({ message }: { message: string }) {
+  return <p className="empty-state">{message}</p>;
+}
+
 function WorkqueueTable({ rows }: { rows: WorkqueueDashboardItem[] }) {
   return (
     <section className="panel">
@@ -65,30 +80,32 @@ function WorkqueueTable({ rows }: { rows: WorkqueueDashboardItem[] }) {
         <h2>Open Workqueues</h2>
         <p>Tasks generated from eligibility, charge capture, claims, and batch workflows.</p>
       </header>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>Priority</th>
-              <th>Task</th>
-              <th>Area</th>
-              <th>Issue</th>
-              <th>Due</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td><span className={`pill ${row.priority}`}>{row.priority}</span></td>
-                <td>{row.title}</td>
-                <td>{titleCase(row.domain)}</td>
-                <td>{row.description ?? "—"}</td>
-                <td>{row.dueAt ? new Date(row.dueAt).toLocaleDateString() : "—"}</td>
+      {rows.length === 0 ? <EmptyRows message="No open workqueue items found." /> : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Priority</th>
+                <th>Task</th>
+                <th>Area</th>
+                <th>Issue</th>
+                <th>Due</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td><span className={`pill ${row.priority}`}>{row.priority}</span></td>
+                  <td>{row.title}</td>
+                  <td>{titleCase(row.domain)}</td>
+                  <td>{row.description ?? "—"}</td>
+                  <td>{row.dueAt ? new Date(row.dueAt).toLocaleDateString() : "—"}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
@@ -100,32 +117,34 @@ function ChargeTable({ rows }: { rows: ChargeDashboardRow[] }) {
         <h2>Charge Capture</h2>
         <p>Review documentation, coding, eligibility, and authorization blockers before claim creation.</p>
       </header>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>DOS</th>
-              <th>Client</th>
-              <th>Provider</th>
-              <th>CPT</th>
-              <th>Charge</th>
-              <th>Action Needed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.dateOfService ?? "—"}</td>
-                <td>{row.clientId ?? "—"}</td>
-                <td>{row.providerId ?? "—"}</td>
-                <td>{row.cptCode ?? "—"}</td>
-                <td>{currency(row.totalCharge)}</td>
-                <td>{row.actionNeeded}</td>
+      {rows.length === 0 ? <EmptyRows message="No charge-capture rows found." /> : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>DOS</th>
+                <th>Client</th>
+                <th>Provider</th>
+                <th>CPT</th>
+                <th>Charge</th>
+                <th>Action Needed</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.dateOfService ?? "—"}</td>
+                  <td>{row.clientId ?? "—"}</td>
+                  <td>{row.providerId ?? "—"}</td>
+                  <td>{row.cptCode ?? "—"}</td>
+                  <td>{currency(row.totalCharge)}</td>
+                  <td>{row.actionNeeded}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
@@ -137,32 +156,34 @@ function ClaimTable({ rows }: { rows: ClaimDashboardRow[] }) {
         <h2>Claims</h2>
         <p>Validate claims, move clean claims to batch, and track rejected or submitted claims.</p>
       </header>
-      <div className="table-wrap">
-        <table>
-          <thead>
-            <tr>
-              <th>DOS</th>
-              <th>Client</th>
-              <th>Payer</th>
-              <th>Status</th>
-              <th>Charge</th>
-              <th>Action Needed</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((row) => (
-              <tr key={row.id}>
-                <td>{row.serviceDate ?? "—"}</td>
-                <td>{row.clientId ?? "—"}</td>
-                <td>{row.payerProfileId ?? "—"}</td>
-                <td><span className="pill normal">{titleCase(row.status)}</span></td>
-                <td>{currency(row.totalCharge)}</td>
-                <td>{row.actionNeeded}</td>
+      {rows.length === 0 ? <EmptyRows message="No claims found." /> : (
+        <div className="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>DOS</th>
+                <th>Client</th>
+                <th>Payer</th>
+                <th>Status</th>
+                <th>Charge</th>
+                <th>Action Needed</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {rows.map((row) => (
+                <tr key={row.id}>
+                  <td>{row.serviceDate ?? "—"}</td>
+                  <td>{row.clientId ?? "—"}</td>
+                  <td>{row.payerProfileId ?? "—"}</td>
+                  <td><span className="pill normal">{titleCase(row.status)}</span></td>
+                  <td>{currency(row.totalCharge)}</td>
+                  <td>{row.actionNeeded}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </section>
   );
 }
@@ -201,7 +222,11 @@ function ActionScreenCard({ screen }: { screen: ActionScreenDefinition }) {
   );
 }
 
-function Sections<T>({ sections, render }: { sections: DashboardSection<T>[]; render: (rows: T[]) => ReactNode }) {
+function Sections<T>({ sections, render, emptyMessage }: { sections: DashboardSection<T>[]; render: (rows: T[]) => ReactNode; emptyMessage: string }) {
+  if (sections.length === 0) {
+    return <EmptyRows message={emptyMessage} />;
+  }
+
   return (
     <div className="section-stack">
       {sections.map((section) => (
@@ -239,7 +264,28 @@ function DashboardView({ uiModel }: { uiModel: ReturnType<typeof buildRcmDashboa
 
 export function App() {
   const [route, setRoute] = useState<RouteKey>("dashboard");
-  const uiModel = useMemo(() => buildRcmDashboardUiModel(mockDashboardSnapshot), []);
+  const [snapshot, setSnapshot] = useState<RcmDashboardSnapshot>(mockDashboardSnapshot);
+  const [mode, setMode] = useState<DashboardDataMode>("mock");
+  const [message, setMessage] = useState("Preparing dashboard data.");
+  const [loading, setLoading] = useState(true);
+  const uiModel = useMemo(() => buildRcmDashboardUiModel(snapshot), [snapshot]);
+
+  useEffect(() => {
+    let active = true;
+
+    setLoading(true);
+    loadDashboardData().then((loaded) => {
+      if (!active) return;
+      setSnapshot(loaded.snapshot);
+      setMode(loaded.mode);
+      setMessage(loaded.message);
+      setLoading(false);
+    });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <div className="app-shell">
@@ -257,10 +303,15 @@ export function App() {
         </nav>
       </aside>
       <main className="content">
+        <DataStatus loading={loading} mode={mode} message={message} />
         {route === "dashboard" ? <DashboardView uiModel={uiModel} /> : null}
-        {route === "workqueues" ? <WorkqueueTable rows={mockDashboardSnapshot.workqueueItems} /> : null}
-        {route === "charges" ? <Sections sections={uiModel.viewModel.chargeSections} render={(rows) => <ChargeTable rows={rows} />} /> : null}
-        {route === "claims" ? <Sections sections={uiModel.viewModel.claimSections} render={(rows) => <ClaimTable rows={rows} />} /> : null}
+        {route === "workqueues" ? <WorkqueueTable rows={snapshot.workqueueItems} /> : null}
+        {route === "charges" ? (
+          <Sections sections={uiModel.viewModel.chargeSections} emptyMessage="No charge-capture sections found." render={(rows) => <ChargeTable rows={rows} />} />
+        ) : null}
+        {route === "claims" ? (
+          <Sections sections={uiModel.viewModel.claimSections} emptyMessage="No claim sections found." render={(rows) => <ClaimTable rows={rows} />} />
+        ) : null}
         {route === "actions" ? (
           <section className="action-grid">
             {WORKQUEUE_ACTION_SCREENS.map((screen) => <ActionScreenCard key={screen.key} screen={screen} />)}
