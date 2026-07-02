@@ -78,22 +78,49 @@ async function loadSettingsSummary(db: ReturnType<typeof createBrowserDb>, tenan
   return { practices, providers, payers, payerProfiles, systemSettings };
 }
 
-async function loadTenantsForUser(db: ReturnType<typeof createBrowserDb>, userId: string): Promise<TenantOption[]> {
-  const { data: memberships, error } = await db.from("tenant_users").select("tenant_id").eq("user_id", userId);
-  if (error || !memberships || memberships.length === 0) return [];
-  const tenantIds = Array.from(new Set(memberships.map((row: { tenant_id: string }) => row.tenant_id).filter(Boolean)));
-  if (tenantIds.length === 0) return [];
-  const { data: tenants, error: tenantError } = await db.from("tenants").select("id, name, legal_name, status, timezone").in("id", tenantIds);
-  if (tenantError || !tenants) return [];
+async function loadTenantRowsByIds(db: ReturnType<typeof createBrowserDb>, tenantIds: string[]): Promise<TenantOption[]> {
+  const uniqueTenantIds = Array.from(new Set(tenantIds.filter(Boolean)));
+  if (uniqueTenantIds.length === 0) return [];
+
+  const { data: tenants, error } = await db
+    .from("tenants")
+    .select("id, name, legal_name, status, timezone")
+    .in("id", uniqueTenantIds)
+    .order("name", { ascending: true });
+
+  if (error || !tenants) return [];
   return (tenants as Record<string, unknown>[]).map(toTenantOption);
 }
 
-async function loadDevelopmentTenant(db: ReturnType<typeof createBrowserDb>): Promise<TenantOption[]> {
-  const tenantId = envValue("VITE_THERASSISTANT_TENANT_ID");
-  if (!tenantId) return [];
-  const { data, error } = await db.from("tenants").select("id, name, legal_name, status, timezone").eq("id", tenantId).maybeSingle();
-  if (error || !data) return [{ id: tenantId, name: tenantId, legalName: null, status: null, timezone: null }];
-  return [toTenantOption(data as Record<string, unknown>)];
+async function loadTenantsForUser(db: ReturnType<typeof createBrowserDb>, userId: string): Promise<TenantOption[]> {
+  const { data: memberships, error } = await db.from("tenant_users").select("tenant_id").eq("user_id", userId);
+  if (error || !memberships || memberships.length === 0) return [];
+  const tenantIds = memberships.map((row: { tenant_id: string }) => row.tenant_id);
+  return loadTenantRowsByIds(db, tenantIds);
+}
+
+async function loadDevelopmentTenants(db: ReturnType<typeof createBrowserDb>): Promise<TenantOption[]> {
+  const fallbackTenantId = envValue("VITE_THERASSISTANT_TENANT_ID");
+  const { data, error } = await db
+    .from("tenants")
+    .select("id, name, legal_name, status, timezone")
+    .order("name", { ascending: true });
+
+  const tenants = error || !data ? [] : (data as Record<string, unknown>[]).map(toTenantOption);
+
+  if (fallbackTenantId && !tenants.some((tenant) => tenant.id === fallbackTenantId)) {
+    tenants.unshift({ id: fallbackTenantId, name: fallbackTenantId, legalName: null, status: null, timezone: null });
+  }
+
+  return tenants;
+}
+
+function selectTenant(tenants: TenantOption[], preferredTenantId?: string | null): TenantOption | null {
+  const envTenantId = envValue("VITE_THERASSISTANT_TENANT_ID");
+  return tenants.find((tenant) => tenant.id === preferredTenantId)
+    ?? tenants.find((tenant) => tenant.id === envTenantId)
+    ?? tenants[0]
+    ?? null;
 }
 
 export async function loadAppUserContext(preferredTenantId?: string | null): Promise<AppUserContext> {
@@ -102,8 +129,8 @@ export async function loadAppUserContext(preferredTenantId?: string | null): Pro
     const { data: authData } = await db.auth.getUser();
     const userId = authData.user?.id ?? null;
     const email = authData.user?.email ?? null;
-    const tenants = userId ? await loadTenantsForUser(db, userId) : await loadDevelopmentTenant(db);
-    const selectedTenant = tenants.find((tenant) => tenant.id === preferredTenantId) ?? tenants[0] ?? null;
+    const tenants = userId ? await loadTenantsForUser(db, userId) : await loadDevelopmentTenants(db);
+    const selectedTenant = selectTenant(tenants, preferredTenantId);
     const settingsSummary = selectedTenant ? await loadSettingsSummary(db, selectedTenant.id) : emptySummary;
     return {
       authMode: userId ? "session" : "development",
