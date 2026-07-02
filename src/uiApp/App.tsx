@@ -13,9 +13,10 @@ import {
   type WorkqueueDashboardItem,
   type WorkqueueSummary,
 } from "../index";
-import { loadAppUserContext, type AppUserContext, type SettingsSummary } from "./appContext";
+import { loadAppUserContext, type AppUserContext } from "./appContext";
 import { loadDashboardData, resolveDashboardWorkqueueItem, type DashboardDataMode, type DashboardLoadOptions } from "./dashboardDataLoader";
 import { mockDashboardSnapshot } from "./mockDashboardData";
+import { LiveSettingsView } from "./settingsLiveView";
 
 type RouteKey =
   | "settings"
@@ -53,19 +54,6 @@ const navItems: NavItem[] = [
   { key: "workqueues", label: "Workqueues" },
   { key: "dashboard", label: "RCM Dashboard" },
   { key: "actions", label: "Action Screens" },
-];
-
-const settingsDomains = [
-  "Practice identity",
-  "Users, roles, and permissions",
-  "Providers and credentialing",
-  "Payers and payer profiles",
-  "Service locations",
-  "Billing defaults",
-  "Claims and EDI setup",
-  "Patient portal",
-  "Security and audit",
-  "Integrations",
 ];
 
 function titleCase(value: string): string {
@@ -166,51 +154,6 @@ function AppContextBar({ context, onTenantChange }: { context: AppUserContext | 
 
 function EmptyRows({ message }: { message: string }) {
   return <p className="empty-state">{message}</p>;
-}
-
-function SummaryGrid({ summary }: { summary: SettingsSummary }) {
-  const rows = [
-    ["Practices", summary.practices],
-    ["Providers", summary.providers],
-    ["Payers", summary.payers],
-    ["Payer Profiles", summary.payerProfiles],
-    ["System Settings", summary.systemSettings],
-  ] as const;
-
-  return (
-    <section className="metrics-grid">
-      {rows.map(([label, value]) => (
-        <article className="metric-card" key={label}>
-          <span>{label}</span>
-          <strong>{value}</strong>
-        </article>
-      ))}
-    </section>
-  );
-}
-
-function SettingsView({ context }: { context: AppUserContext | null }) {
-  return (
-    <section className="page-stack">
-      <section className="hero">
-        <div>
-          <span>Foundation</span>
-          <h1>Settings</h1>
-          <p>Tenant setup comes first: practice identity, users, providers, payers, service locations, billing defaults, claims/EDI, portal, and security.</p>
-        </div>
-      </section>
-      <SummaryGrid summary={context?.settingsSummary ?? { practices: 0, providers: 0, payers: 0, payerProfiles: 0, systemSettings: 0 }} />
-      <section className="settings-grid">
-        {settingsDomains.map((domain) => (
-          <article className="screen-card" key={domain}>
-            <span>Settings Area</span>
-            <h3>{domain}</h3>
-            <p>Foundation screen placeholder. This will be wired to live tables in the next settings sub-batches.</p>
-          </article>
-        ))}
-      </section>
-    </section>
-  );
 }
 
 function AuthView({ context }: { context: AppUserContext | null }) {
@@ -615,10 +558,10 @@ export function App() {
       <main className="content">
         <AppContextBar context={appContext} onTenantChange={handleTenantChange} />
         <DataStatus loading={loading} mode={mode} message={message} />
-        {route === "settings" ? <SettingsView context={appContext} /> : null}
+        {route === "settings" ? <LiveSettingsView context={appContext} /> : null}
         {route === "auth" ? <AuthView context={appContext} /> : null}
         {route === "clients" ? <PlaceholderPage title="Clients" description="Client demographics, insurance policies, authorizations, clinical profile, ledger, documents, and notes/history." /> : null}
-        {route === "appointments" ? <PlaceholderPage title="Appointments" description="Calendar, appointment status, telehealth or in-person status, client check-in, pre-session questions, On my way, and I’m here." /> : null}
+        {route === "appointments" ? <PlaceholderPage title="Appointments" description="Calendar, appointment status, telehealth or in-person status, client check-in, pre-session questions, On my way, and I'm here." /> : null}
         {route === "documentation" ? <PlaceholderPage title="Documentation" description="Assessments, treatment plans, session notes, Golden Thread checks, signed-note status, and clinical documentation readiness." /> : null}
         {route === "coding" ? <PlaceholderPage title="Coding" description="CPT/HCPCS selection, diagnosis linkage, units, modifiers, payer rules, and documentation-to-code validation." /> : null}
         {route === "payments" ? <PlaceholderPage title="Payments" description="ERA/EOB posting, manual posting, historical payment posting, adjustments, patient responsibility, and ledger posting." /> : null}
