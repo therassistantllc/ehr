@@ -47,6 +47,14 @@ export type CommitImportResult = {
   skippedRowIds: string[];
 };
 
+export type RollbackImportResult = {
+  batchId: string;
+  rollbackId: string;
+  rolledBackCount: number;
+  rolledBackChargeIds: string[];
+  skippedChargeIds: string[];
+};
+
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null;
 }
@@ -260,6 +268,88 @@ export class ImportWorkflowService extends TherassistantService {
     return { batchId, committedCount: createdChargeIds.length, createdChargeIds, skippedRowIds };
   }
 
+  async rollbackChargeImportBatch(batchId: string, reason?: string): Promise<RollbackImportResult> {
+    assertUuid(batchId, "batchId");
+    const now = new Date().toISOString();
+    const batch = await this.findById("import_batches", batchId);
+    if (!batch) throw new ServiceError("Import batch not found.");
+
+    const { data: rows, error: rowsError } = await this.db
+      .from("import_rows")
+      .select("*")
+      .eq("tenant_id", this.tenantId())
+      .or(`import_batch_id.eq.${batchId},batch_id.eq.${batchId}`)
+      .eq("committed_object_type", "charges")
+      .not("committed_object_id", "is", null)
+      .is("archived_at", null)
+      .order("row_number", { ascending: true });
+    if (rowsError) throw new ServiceError("Failed to load committed import rows.", rowsError);
+
+    const rolledBackChargeIds: string[] = [];
+    const skippedChargeIds: string[] = [];
+
+    for (const row of (rows ?? []) as TherassistantRecord[]) {
+      const chargeId = asString(row.committed_object_id);
+      if (!chargeId) continue;
+      const charge = await this.findById("charges", chargeId);
+      if (!charge || charge.archived_at) {
+        skippedChargeIds.push(chargeId);
+        continue;
+      }
+      if (charge.claim_id || ["claimed", "batched", "submitted", "paid"].includes(String(charge.charge_status ?? ""))) {
+        skippedChargeIds.push(chargeId);
+        continue;
+      }
+      await this.updateOne("charges", chargeId, {
+        archived_at: now,
+        charge_status: "void",
+        metadata: { ...objectValue(charge.metadata), rollbackBatchId: batchId, rollbackReason: reason ?? null },
+      });
+      await this.updateOne("import_rows", row.id, {
+        row_status: "rolled_back",
+        status: "rolled_back",
+        rolled_back_at: now,
+      });
+      rolledBackChargeIds.push(chargeId);
+    }
+
+    const rollback = await this.insertOne("import_rollbacks", {
+      import_batch_id: batchId,
+      rollback_reason: reason ?? null,
+      rolled_back_object_type: "charges",
+      rolled_back_object_ids: rolledBackChargeIds,
+      rolled_back_count: rolledBackChargeIds.length,
+      metadata: { skippedChargeIds },
+    });
+
+    const stillCommitted = await this.countCommittedRows(batchId);
+    await this.updateOne("import_batches", batchId, {
+      status: stillCommitted > 0 ? "committed" : "rolled_back",
+      rolled_back_at: stillCommitted > 0 ? null : now,
+      rollback_reason: reason ?? null,
+    });
+
+    const { data: commits, error: commitsError } = await this.db
+      .from("import_commits")
+      .select("id")
+      .eq("tenant_id", this.tenantId())
+      .eq("import_batch_id", batchId)
+      .is("rolled_back_at", null)
+      .is("archived_at", null);
+    if (commitsError) throw new ServiceError("Failed to load import commits.", commitsError);
+    await Promise.all(((commits ?? []) as Array<{ id: string }>).map((commit) => this.updateOne("import_commits", commit.id, { rolled_back_at: now })));
+
+    await this.writeAuditLog({
+      targetType: "import_rollbacks",
+      targetId: rollback.id,
+      action: "workflow",
+      newValues: rollback,
+      metadata: { batchId, reason: reason ?? null, rolledBackChargeIds, skippedChargeIds },
+    });
+
+    return { batchId, rollbackId: rollback.id, rolledBackCount: rolledBackChargeIds.length, rolledBackChargeIds, skippedChargeIds };
+  }
+
   private validateChargeImportRow(row: TherassistantRecord): ImportValidationIssue[] {
     const data = objectValue(row.normalized_data ?? row.raw_data);
     const issues: ImportValidationIssue[] = [];
@@ -285,5 +375,17 @@ export class ImportWorkflowService extends TherassistantService {
       .eq("import_batch_id", batchId)
       .is("archived_at", null);
     if (error) throw new ServiceError("Failed to clear import validation errors.", error);
+  }
+
+  private async countCommittedRows(batchId: string): Promise<number> {
+    const { data, error } = await this.db
+      .from("import_rows")
+      .select("id")
+      .eq("tenant_id", this.tenantId())
+      .or(`import_batch_id.eq.${batchId},batch_id.eq.${batchId}`)
+      .eq("row_status", "committed")
+      .is("archived_at", null);
+    if (error) throw new ServiceError("Failed to count committed import rows.", error);
+    return data?.length ?? 0;
   }
 }
