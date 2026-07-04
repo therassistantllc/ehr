@@ -90,14 +90,14 @@ export {
 } from "./services/rcmOperationalWorkflowService";
 
 export {
-  ImportChargeWorkflowService,
-  type ImportedChargeRow,
-  type ImportBatchInput,
-  type ImportCommitResult,
+  ImportWorkflowService,
+  type CommitImportResult,
   type ImportRowInput,
   type ImportValidationIssue,
   type ImportValidationResult,
-} from "./services/importChargeWorkflowService";
+  type ImportWorkflowStatus,
+  type StartImportBatchInput,
+} from "./services/importWorkflowService";
 
 export {
   WorkqueueQueryService,
@@ -117,7 +117,7 @@ export { createEligibilityReadinessHook, useEligibilityReadiness, type Eligibili
 export { createChargeCaptureHook, useChargeCapture, type ChargeCaptureHook } from "./hooks/useChargeCapture";
 export { createClaimsHook, useClaims, type ClaimsHook } from "./hooks/useClaims";
 export { createRcmOperationalWorkflowHook, useRcmOperationalWorkflow, type RcmOperationalWorkflowHook } from "./hooks/useRcmOperationalWorkflow";
-export { createImportChargeWorkflowHook, useImportChargeWorkflow, type ImportChargeWorkflowHook } from "./hooks/useImportChargeWorkflow";
+export { createImportWorkflowHook, useImportWorkflow, type ImportWorkflowHook } from "./hooks/useImportWorkflow";
 export { createWorkqueueDashboardHook, useWorkqueueDashboard, type WorkqueueDashboardHook } from "./hooks/useWorkqueueDashboard";
 
 export {
