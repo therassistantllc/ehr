@@ -95,6 +95,25 @@ export {
 } from "./services/claimBatchGenerationTypes";
 
 export {
+  PaymentPostingService,
+} from "./services/paymentPostingService";
+
+export {
+  PaymentSupplementalPostingService,
+} from "./services/paymentSupplementalPostingService";
+
+export {
+  type HistoricalPaymentInput,
+  type ManualEobInput,
+  type PaymentAdjustmentInput,
+  type PaymentAllocationInput,
+  type PaymentMethod,
+  type PaymentSource,
+  type PostedPaymentResult,
+  type PostPaymentInput,
+} from "./services/paymentPostingTypes";
+
+export {
   RcmOperationalWorkflowService,
   type ChargeClaimReadinessResult,
   type CreateClaimWorkflowResult,
@@ -131,6 +150,7 @@ export { createClaimsHook, useClaims, type ClaimsHook } from "./hooks/useClaims"
 export { createClaimBatchGenerationHook, useClaimBatchGeneration, type ClaimBatchGenerationHook } from "./hooks/useClaimBatchGeneration";
 export { createRcmOperationalWorkflowHook, useRcmOperationalWorkflow, type RcmOperationalWorkflowHook } from "./hooks/useRcmOperationalWorkflow";
 export { createImportWorkflowHook, useImportWorkflow, type ImportWorkflowHook } from "./hooks/useImportWorkflow";
+export { createPaymentPostingHook, usePaymentPosting, type PaymentPostingHook } from "./hooks/usePaymentPosting";
 export { createWorkqueueDashboardHook, useWorkqueueDashboard, type WorkqueueDashboardHook } from "./hooks/useWorkqueueDashboard";
 
 export {
