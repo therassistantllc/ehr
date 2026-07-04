@@ -66,21 +66,21 @@ function statusColumnFor(table: string): string {
 function workqueueSourceObjectType(sourceType: string): string {
   switch (sourceType) {
     case "clients":
-      return "Clients";
+      return "client";
     case "appointments":
-      return "Appointments";
+      return "appointment";
     case "charges":
       return "charge";
     case "claims":
-      return "Claims";
+      return "claim";
     case "claim_batches":
-      return "Claims_batch";
+      return "claim_batch";
     case "eligibility_checks":
       return "eligibility";
     case "payments":
       return "payment";
     case "providers":
-      return "Providers";
+      return "provider";
     default:
       return sourceType;
   }
