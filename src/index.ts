@@ -83,10 +83,7 @@ export {
   type ClaimValidationSeverity,
 } from "./services/claimsService";
 
-export {
-  ClaimBatchGenerationService,
-} from "./services/claimBatchGenerationService";
-
+export { ClaimBatchGenerationService } from "./services/claimBatchGenerationService";
 export {
   type ClaimBatchGenerationIssue,
   type ClaimBatchGenerationMode,
@@ -94,14 +91,8 @@ export {
   type GenerateClaimBatchFileInput,
 } from "./services/claimBatchGenerationTypes";
 
-export {
-  PaymentPostingService,
-} from "./services/paymentPostingService";
-
-export {
-  PaymentSupplementalPostingService,
-} from "./services/paymentSupplementalPostingService";
-
+export { PaymentPostingService } from "./services/paymentPostingService";
+export { PaymentSupplementalPostingService } from "./services/paymentSupplementalPostingService";
 export {
   type HistoricalPaymentInput,
   type ManualEobInput,
@@ -112,6 +103,18 @@ export {
   type PostedPaymentResult,
   type PostPaymentInput,
 } from "./services/paymentPostingTypes";
+
+export { parseEra835 } from "./services/eraParser";
+export { EraPostingService } from "./services/eraPostingService";
+export {
+  type EraPostResult,
+  type EraUploadInput,
+  type ParsedEraAdjustment,
+  type ParsedEraClaim,
+  type ParsedEraFile,
+  type ParsedEraPayment,
+  type ParsedEraServiceLine,
+} from "./services/eraPostingTypes";
 
 export {
   RcmOperationalWorkflowService,
@@ -151,6 +154,7 @@ export { createClaimBatchGenerationHook, useClaimBatchGeneration, type ClaimBatc
 export { createRcmOperationalWorkflowHook, useRcmOperationalWorkflow, type RcmOperationalWorkflowHook } from "./hooks/useRcmOperationalWorkflow";
 export { createImportWorkflowHook, useImportWorkflow, type ImportWorkflowHook } from "./hooks/useImportWorkflow";
 export { createPaymentPostingHook, usePaymentPosting, type PaymentPostingHook } from "./hooks/usePaymentPosting";
+export { createEraPostingHook, useEraPosting, type EraPostingHook } from "./hooks/useEraPosting";
 export { createWorkqueueDashboardHook, useWorkqueueDashboard, type WorkqueueDashboardHook } from "./hooks/useWorkqueueDashboard";
 
 export {
