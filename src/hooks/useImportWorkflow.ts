@@ -17,6 +17,7 @@ export function createImportWorkflowHook(db: TherassistantSupabaseClient, contex
     addImportRow: (batchId: string, input: ImportRowInput) => service.addImportRow(batchId, input),
     validateChargeImportBatch: (batchId: string) => service.validateChargeImportBatch(batchId),
     commitChargeImportBatch: (batchId: string) => service.commitChargeImportBatch(batchId),
+    rollbackChargeImportBatch: (batchId: string, reason?: string) => service.rollbackChargeImportBatch(batchId, reason),
   };
 }
 
