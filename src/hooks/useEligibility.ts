@@ -18,6 +18,7 @@ export function createEligibilityHook(db: TherassistantSupabaseClient, context: 
     getActivePolicies: (clientId: string, serviceDate: string) => service.getActivePolicies(clientId, serviceDate),
     verifyEligibility: (input: EligibilityVerificationInput) => service.verifyEligibility(input),
     getLatestEligibility: (clientId: string, serviceDate: string, cptCode?: string) => service.getLatestEligibility(clientId, serviceDate, cptCode),
+    getLatestEligibilitySummary: (clientId: string, serviceDate: string, cptCode?: string) => service.getLatestEligibilitySummary(clientId, serviceDate, cptCode),
     getExpectedClientResponsibility: (clientId: string, serviceDate: string, cptCode?: string) => service.getExpectedClientResponsibility(clientId, serviceDate, cptCode),
     flagEligibilityIssue: (clientId: string, issueType: string, note?: string) => service.flagEligibilityIssue(clientId, issueType, note),
   };
