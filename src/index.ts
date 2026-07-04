@@ -43,7 +43,23 @@ export {
   type CoveragePriority,
   type EligibilityStatus,
   type EligibilityVerificationInput,
+  type LatestEligibilityDisplayStatus,
+  type LatestEligibilitySummary,
 } from "./services/eligibilityService";
+
+export {
+  classifyEligibilityIssue,
+  ELIGIBILITY_ISSUE_TABS,
+  type EligibilityIssueClassification,
+  type EligibilityIssueClassificationInput,
+  type EligibilityIssueType,
+} from "./services/eligibilityIssueClassifier";
+
+export {
+  EligibilityReadinessService,
+  type EligibilityReadinessFilters,
+  type EligibilityReadinessRow,
+} from "./services/eligibilityReadinessService";
 
 export {
   ChargeCaptureService,
@@ -68,6 +84,12 @@ export {
 } from "./services/claimsService";
 
 export {
+  RcmOperationalWorkflowService,
+  type ChargeClaimReadinessResult,
+  type CreateClaimWorkflowResult,
+} from "./services/rcmOperationalWorkflowService";
+
+export {
   WorkqueueQueryService,
   type ChargeDashboardFilters,
   type ChargeDashboardRow,
@@ -81,8 +103,10 @@ export {
 } from "./services/workqueueQueryService";
 
 export { createEligibilityHook, useEligibility, type EligibilityHook } from "./hooks/useEligibility";
+export { createEligibilityReadinessHook, useEligibilityReadiness, type EligibilityReadinessHook } from "./hooks/useEligibilityReadiness";
 export { createChargeCaptureHook, useChargeCapture, type ChargeCaptureHook } from "./hooks/useChargeCapture";
 export { createClaimsHook, useClaims, type ClaimsHook } from "./hooks/useClaims";
+export { createRcmOperationalWorkflowHook, useRcmOperationalWorkflow, type RcmOperationalWorkflowHook } from "./hooks/useRcmOperationalWorkflow";
 export { createWorkqueueDashboardHook, useWorkqueueDashboard, type WorkqueueDashboardHook } from "./hooks/useWorkqueueDashboard";
 
 export {
