@@ -96,6 +96,7 @@ export {
   type ImportValidationIssue,
   type ImportValidationResult,
   type ImportWorkflowStatus,
+  type RollbackImportResult,
   type StartImportBatchInput,
 } from "./services/importWorkflowService";
 
