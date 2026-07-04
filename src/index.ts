@@ -84,6 +84,17 @@ export {
 } from "./services/claimsService";
 
 export {
+  ClaimBatchGenerationService,
+} from "./services/claimBatchGenerationService";
+
+export {
+  type ClaimBatchGenerationIssue,
+  type ClaimBatchGenerationMode,
+  type GeneratedClaimBatchFile,
+  type GenerateClaimBatchFileInput,
+} from "./services/claimBatchGenerationTypes";
+
+export {
   RcmOperationalWorkflowService,
   type ChargeClaimReadinessResult,
   type CreateClaimWorkflowResult,
@@ -117,6 +128,7 @@ export { createEligibilityHook, useEligibility, type EligibilityHook } from "./h
 export { createEligibilityReadinessHook, useEligibilityReadiness, type EligibilityReadinessHook } from "./hooks/useEligibilityReadiness";
 export { createChargeCaptureHook, useChargeCapture, type ChargeCaptureHook } from "./hooks/useChargeCapture";
 export { createClaimsHook, useClaims, type ClaimsHook } from "./hooks/useClaims";
+export { createClaimBatchGenerationHook, useClaimBatchGeneration, type ClaimBatchGenerationHook } from "./hooks/useClaimBatchGeneration";
 export { createRcmOperationalWorkflowHook, useRcmOperationalWorkflow, type RcmOperationalWorkflowHook } from "./hooks/useRcmOperationalWorkflow";
 export { createImportWorkflowHook, useImportWorkflow, type ImportWorkflowHook } from "./hooks/useImportWorkflow";
 export { createWorkqueueDashboardHook, useWorkqueueDashboard, type WorkqueueDashboardHook } from "./hooks/useWorkqueueDashboard";
