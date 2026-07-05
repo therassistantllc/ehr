@@ -87,7 +87,7 @@ export class EraPostingService extends TherassistantService {
         claimId: matchedClaim.id,
         clientId: String(matchedClaim.client_id ?? matchedClaim.patient_id ?? "") || null,
         providerId: String(matchedClaim.rendering_provider_id ?? "") || null,
-        serviceDate: dateOnly(String(matchedClaim.service_date ?? "")) ?? undefined,
+        serviceDate: dateOnly(String(matchedClaim.service_date ?? "")) ?? null,
         appliedAmount: money(claim.paidAmount),
         contractualAdjustmentAmount: money(claim.adjustments.reduce((sum, adj) => sum + money(adj.amount), 0)),
         patientResponsibilityAmount: money(claim.patientResponsibilityAmount),
