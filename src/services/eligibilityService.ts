@@ -53,6 +53,17 @@ export type BenefitSnapshot = {
   rawStatusText: string | null;
 };
 
+export type LatestEligibilityDisplayStatus = "Active" | "Inactive" | "Not checked" | "Not checked in 30+ days" | "Needs review" | "Unknown";
+
+export type LatestEligibilitySummary = BenefitSnapshot & {
+  serviceDate: string;
+  cptCode: string | null;
+  daysSinceChecked: number | null;
+  displayStatus: LatestEligibilityDisplayStatus;
+  needsRecheck: boolean;
+  needsWorkqueueReview: boolean;
+};
+
 function dateOnly(value: string): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) throw new ServiceError("Invalid date.");
@@ -75,6 +86,23 @@ function dbStatus(status: EligibilityStatus): "not_checked" | "active" | "inacti
 function dbPriority(priority?: CoveragePriority): "primary" | "secondary" | "tertiary" {
   if (priority === "secondary" || priority === "tertiary") return priority;
   return priority === "other" ? "tertiary" : "primary";
+}
+
+function computeDaysSince(value: string | null): number | null {
+  if (!value) return null;
+  const checkedAt = new Date(value);
+  if (Number.isNaN(checkedAt.getTime())) return null;
+  const diffMs = Date.now() - checkedAt.getTime();
+  return Math.max(0, Math.floor(diffMs / (24 * 60 * 60 * 1000)));
+}
+
+function deriveDisplayStatus(status: EligibilityStatus | null, daysSinceChecked: number | null): LatestEligibilityDisplayStatus {
+  if (daysSinceChecked === null || status === null) return "Not checked";
+  if (daysSinceChecked > 30) return "Not checked in 30+ days";
+  if (status === "active" || status === "covered") return "Active";
+  if (status === "inactive" || status === "terminated") return "Inactive";
+  if (status === "pending" || status === "needs_review" || status === "error" || status === "not_checked") return "Needs review";
+  return "Unknown";
 }
 
 export class EligibilityService extends TherassistantService {
@@ -169,6 +197,35 @@ export class EligibilityService extends TherassistantService {
     }
     const row = data as TherassistantRecord;
     return { policyId: typeof row.insurance_policy_id === "string" ? row.insurance_policy_id : null, eligibilityCheckId: row.id, payerId: typeof row.payer_id === "string" ? row.payer_id : null, status: String(row.eligibility_status ?? "pending") as EligibilityStatus, copayAmount: amount(row.copay_amount), coinsurancePercent: amount(row.coinsurance_percent), deductibleRemaining: amount(row.deductible_remaining), outOfPocketRemaining: amount(row.out_of_pocket_remaining), authorizationRequired: Boolean(row.authorization_required), checkedAt: typeof row.checked_at === "string" ? row.checked_at : null, rawStatusText: typeof row.raw_status_text === "string" ? row.raw_status_text : null };
+  }
+
+  async getLatestEligibilitySummary(clientId: string, serviceDate: string, cptCode?: string): Promise<LatestEligibilitySummary> {
+    const dos = dateOnly(serviceDate);
+    const snapshot = await this.getLatestEligibility(clientId, dos, cptCode);
+    const base: BenefitSnapshot = snapshot ?? {
+      policyId: null,
+      eligibilityCheckId: null,
+      payerId: null,
+      status: null,
+      copayAmount: null,
+      coinsurancePercent: null,
+      deductibleRemaining: null,
+      outOfPocketRemaining: null,
+      authorizationRequired: false,
+      checkedAt: null,
+      rawStatusText: null,
+    };
+    const daysSinceChecked = computeDaysSince(base.checkedAt);
+    const displayStatus = deriveDisplayStatus(base.status, daysSinceChecked);
+    return {
+      ...base,
+      serviceDate: dos,
+      cptCode: cptCode ?? null,
+      daysSinceChecked,
+      displayStatus,
+      needsRecheck: daysSinceChecked === null || daysSinceChecked > 30,
+      needsWorkqueueReview: displayStatus !== "Active" || base.authorizationRequired,
+    };
   }
 
   async getExpectedClientResponsibility(clientId: string, serviceDate: string, cptCode?: string): Promise<BenefitSnapshot & { expectedClientResponsibility: number }> {
