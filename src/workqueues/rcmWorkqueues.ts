@@ -27,6 +27,15 @@ export type RcmWorkqueueDefinition = {
   actions: WorkqueueAction[];
 };
 
+const eligibilityColumns: WorkqueueColumn[] = [
+  { key: "clientId", label: "Client", width: "md" },
+  { key: "payerId", label: "Payer", width: "md" },
+  { key: "serviceDate", label: "DOS", width: "sm" },
+  { key: "issue.type", label: "Issue Type", width: "md" },
+  { key: "issue.label", label: "Issue", width: "lg" },
+  { key: "actionNeeded", label: "Action Needed", width: "lg" },
+];
+
 const chargeColumns: WorkqueueColumn[] = [
   { key: "dateOfService", label: "DOS", width: "sm" },
   { key: "clientId", label: "Client", width: "md" },
@@ -49,16 +58,11 @@ export const RCM_WORKQUEUES: RcmWorkqueueDefinition[] = [
   {
     key: "eligibility_issues",
     title: "Eligibility Issues",
-    description: "Coverage, inactive payer, COB, and authorization items that must be resolved before claim creation.",
+    description: "Coverage, inactive payer, COB, missing subscriber, stale eligibility, and authorization items that must be resolved before claim creation.",
     domain: "eligibility",
-    routeKey: "eligibility.flagIssue",
-    defaultFilters: { workType: "eligibility_issue", status: "open" },
-    columns: [
-      { key: "clientId", label: "Client", width: "md" },
-      { key: "sourceObjectId", label: "Source", width: "md" },
-      { key: "priority", label: "Priority", width: "sm" },
-      { key: "description", label: "Issue", width: "lg" },
-    ],
+    routeKey: "eligibilityReadiness.listIssueRows",
+    defaultFilters: { onlyIssues: true, status: "open" },
+    columns: eligibilityColumns,
     actions: [
       { key: "open", label: "Open eligibility", kind: "open", routeKey: "eligibility.latest" },
       { key: "resolve", label: "Resolve", kind: "resolve", routeKey: "workqueue.resolve" },
