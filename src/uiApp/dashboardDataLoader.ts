@@ -94,7 +94,7 @@ function toChargeRow(row: DbRow): ChargeDashboardRow {
   const status = String(row.status ?? "draft");
   return {
     id: row.id,
-    tab: status === "blocked" ? "held_charges" : status === "ready_for_claim" ? "ready_for_review" : "all",
+    tab: status === "blocked" ? "held_charges" : status === "ready_for_claim" ? "ready_for_review" : "released_to_claims",
     status,
     dateOfService: asString(row.service_date),
     clientId: asString(row.client_id),
