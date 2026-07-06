@@ -53,10 +53,9 @@ export class ServiceError extends Error {
 function statusColumnFor(table: string): string {
   switch (table) {
     case "charges":
+      return "charge_status";
     case "claims":
-    case "appointments":
-    case "workqueue_items":
-      return "status";
+      return "claim_status";
     case "claim_batches":
       return "batch_status";
     default:
@@ -85,10 +84,6 @@ function workqueueSourceObjectType(sourceType: string): string {
     default:
       return sourceType;
   }
-}
-
-function objectValue(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
 }
 
 export abstract class TherassistantService {
@@ -178,8 +173,7 @@ export abstract class TherassistantService {
     let query = this.db
       .from(table)
       .select("*")
-      .eq("tenant_id", this.tenantId())
-      .is("deleted_at", null);
+      .eq("tenant_id", this.tenantId());
 
     if (options?.status) {
       query = query.eq(statusColumnFor(table), options.status);
@@ -206,7 +200,7 @@ export abstract class TherassistantService {
 
   protected async softDelete(table: string, id: string, reason?: string): Promise<void> {
     const previous = await this.findById(table, id);
-    await this.updateOne(table, id, { deleted_at: new Date().toISOString() });
+    await this.updateOne(table, id, { archived_at: new Date().toISOString() });
 
     await this.writeAuditLog({
       targetType: table,
@@ -225,42 +219,25 @@ export abstract class TherassistantService {
     newValues?: unknown;
     metadata?: Record<string, unknown>;
   }): Promise<string | null> {
-    const metadata = {
-      ...(input.metadata ?? {}),
-      tenant_id: this.tenantId(),
-      actor_user_id: this.actorUserId(),
-    };
-
-    const rpcResult = await this.db.rpc("write_audits_log", {
-      p_target_type: input.targetType,
-      p_target_id: input.targetId ?? null,
-      p_action: input.action,
-      p_old_values: input.oldValues ?? null,
-      p_new_values: input.newValues ?? null,
-      p_metadata: metadata,
-    });
-
-    if (!rpcResult.error) {
-      return (rpcResult.data as string | null | undefined) ?? null;
-    }
-
     const { data, error } = await this.db
-      .from("audits_logs")
+      .from("audit_logs")
       .insert({
         tenant_id: this.tenantId(),
-        actor_user_id: this.actorUserId(),
-        target_type: input.targetType,
-        target_id: input.targetId ?? null,
+        user_id: this.actorUserId(),
         action: input.action,
-        old_values: input.oldValues ?? null,
-        new_values: input.newValues ?? null,
-        metadata,
+        object_type: input.targetType,
+        object_id: input.targetId ?? null,
+        before_value: input.oldValues ?? null,
+        after_value: input.newValues ?? null,
+        event_type: input.action,
+        event_summary: `${input.action} ${input.targetType}`,
+        event_metadata: input.metadata ?? {},
       })
       .select("id")
       .single();
 
     if (error) {
-      throw new ServiceError("Failed to write audit log.", { rpcError: rpcResult.error, insertError: error });
+      throw new ServiceError("Failed to write audit log.", error);
     }
 
     return (data?.id as string | undefined) ?? null;
@@ -271,12 +248,12 @@ export abstract class TherassistantService {
 
     const { error } = await this.db.from("status_history").insert({
       tenant_id: this.tenantId(),
-      actor_user_id: this.actorUserId(),
-      target_type: input.targetType,
-      target_id: input.targetId,
-      from_status: input.fromStatus ?? null,
-      to_status: input.toStatus,
-      reason: input.reason ?? null,
+      object_type: input.targetType,
+      object_id: input.targetId,
+      previous_status: input.fromStatus ?? null,
+      new_status: input.toStatus,
+      status_reason: input.reason ?? null,
+      changed_by_user_id: this.actorUserId(),
       metadata: input.metadata ?? {},
     });
 
@@ -320,22 +297,17 @@ export abstract class TherassistantService {
   protected async createWorkqueueItem(input: WorkqueueInput): Promise<TherassistantRecord> {
     assertUuid(input.sourceId, "sourceId");
 
-    const sourceType = workqueueSourceObjectType(input.sourceType);
-    const metadata = objectValue(input.metadata);
     const item = await this.insertOne("workqueue_items", {
-      name: input.title ?? input.type,
       status: "open",
-      description: input.description ?? null,
-      workqueue_type: input.type,
-      source_type: sourceType,
-      source_id: input.sourceId,
+      work_type: input.type,
+      source_object_type: workqueueSourceObjectType(input.sourceType),
+      source_object_id: input.sourceId,
       priority: input.priority ?? "normal",
-      assigned_to: input.assignedTo ?? null,
+      assigned_to_user_id: input.assignedTo ?? null,
       due_at: input.dueAt ?? null,
-      data: {
-        ...metadata,
-        sourceTable: input.sourceType,
-      },
+      title: input.title ?? input.type,
+      description: input.description ?? null,
+      context_payload: input.metadata ?? {},
     });
 
     await this.writeAuditLog({
