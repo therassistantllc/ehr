@@ -4,7 +4,7 @@ import type {
   RcmDashboardSnapshot,
   WorkqueueDashboardItem,
   WorkqueueSummary,
-} from "../index";
+} from "../services/workqueueQueryService";
 import { mockDashboardSnapshot } from "./mockDashboardData";
 import {
   createBrowserSupabaseClient,
