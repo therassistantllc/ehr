@@ -1,14 +1,13 @@
 import { createTherassistantSupabaseClient, type TherassistantSupabaseClient } from "../lib/supabase";
 import type { ServiceContext } from "../services/serviceBase";
-import { WorkqueueQueryService } from "../services/workqueueQueryService";
 
 export const REQUIRED_BROWSER_SUPABASE_ENV_KEYS = ["VITE_SUPABASE_URL", "VITE_SUPABASE_ANON_KEY"] as const;
 
 export type BrowserRuntimeConfig = {
-  supabaseUrl?: string;
-  supabaseAnonKey?: string;
-  defaultTenantId?: string;
-  actorUserId?: string;
+  supabaseUrl: string | undefined;
+  supabaseAnonKey: string | undefined;
+  defaultTenantId: string | undefined;
+  actorUserId: string | undefined;
 };
 
 export type TenantScopedRuntimeOptions = {
@@ -66,9 +65,4 @@ export function createServiceContext(options: TenantScopedRuntimeOptions = {}, c
     tenantId,
     actorUserId: options.actorUserId ?? config.actorUserId ?? null,
   };
-}
-
-export function createWorkqueueQueryService(options: TenantScopedRuntimeOptions = {}): WorkqueueQueryService {
-  const config = readBrowserRuntimeConfig();
-  return new WorkqueueQueryService(createBrowserSupabaseClient(config), createServiceContext(options, config));
 }
