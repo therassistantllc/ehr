@@ -1,6 +1,8 @@
-import { createTherassistantSupabaseClient } from "../index";
+import { createBrowserSupabaseClient, envValue } from "./runtime";
 
 export type AuthMode = "session" | "development" | "mock";
+
+type BrowserDb = ReturnType<typeof createBrowserSupabaseClient>;
 
 export type TenantOption = {
   id: string;
@@ -39,35 +41,23 @@ const emptySummary: SettingsSummary = {
   systemSettings: 0,
 };
 
-function envValue(key: string): string | undefined {
-  const value = import.meta.env[key];
-  return typeof value === "string" && value.length > 0 ? value : undefined;
-}
-
-function createBrowserDb() {
-  const supabaseUrl = envValue("VITE_SUPABASE_URL");
-  const supabaseAnonKey = envValue("VITE_SUPABASE_ANON_KEY");
-  if (!supabaseUrl || !supabaseAnonKey) throw new Error("Missing Supabase browser configuration.");
-  return createTherassistantSupabaseClient({ supabaseUrl, supabaseAnonKey });
-}
-
 function toTenantOption(row: Record<string, unknown>): TenantOption {
   return {
     id: String(row.id),
-    name: String(row.name ?? row.legal_name ?? row.id ?? "Unknown tenant"),
+    name: String(row.display_name ?? row.name ?? row.legal_name ?? row.id ?? "Unknown tenant"),
     legalName: typeof row.legal_name === "string" ? row.legal_name : null,
     status: typeof row.status === "string" ? row.status : null,
     timezone: typeof row.timezone === "string" ? row.timezone : null,
   };
 }
 
-async function countRows(db: ReturnType<typeof createBrowserDb>, table: string, tenantId: string): Promise<number> {
-  const { count, error } = await db.from(table).select("id", { count: "exact", head: true }).eq("tenant_id", tenantId);
+async function countRows(db: BrowserDb, table: string, tenantId: string): Promise<number> {
+  const { count, error } = await db.from(table).select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).is("deleted_at", null);
   if (error) return 0;
   return count ?? 0;
 }
 
-async function loadSettingsSummary(db: ReturnType<typeof createBrowserDb>, tenantId: string): Promise<SettingsSummary> {
+async function loadSettingsSummary(db: BrowserDb, tenantId: string): Promise<SettingsSummary> {
   const [practices, providers, payers, payerProfiles, systemSettings] = await Promise.all([
     countRows(db, "practices", tenantId),
     countRows(db, "providers", tenantId),
@@ -78,32 +68,62 @@ async function loadSettingsSummary(db: ReturnType<typeof createBrowserDb>, tenan
   return { practices, providers, payers, payerProfiles, systemSettings };
 }
 
-async function loadTenantRowsByIds(db: ReturnType<typeof createBrowserDb>, tenantIds: string[]): Promise<TenantOption[]> {
+async function loadTenantRowsByIds(db: BrowserDb, tenantIds: string[]): Promise<TenantOption[]> {
   const uniqueTenantIds = Array.from(new Set(tenantIds.filter(Boolean)));
   if (uniqueTenantIds.length === 0) return [];
 
   const { data: tenants, error } = await db
     .from("tenants")
-    .select("id, name, legal_name, status, timezone")
+    .select("id, name, display_name, legal_name, status, timezone")
     .in("id", uniqueTenantIds)
+    .is("deleted_at", null)
     .order("name", { ascending: true });
 
   if (error || !tenants) return [];
   return (tenants as Record<string, unknown>[]).map(toTenantOption);
 }
 
-async function loadTenantsForUser(db: ReturnType<typeof createBrowserDb>, userId: string): Promise<TenantOption[]> {
-  const { data: memberships, error } = await db.from("tenant_users").select("tenant_id").eq("user_id", userId);
+function extractRoleNames(row: Record<string, unknown>): string[] {
+  const roles = new Set<string>();
+
+  if (typeof row.role_name === "string" && row.role_name.trim()) roles.add(row.role_name.trim());
+
+  const data = row.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const role = (data as Record<string, unknown>).role;
+    const dataRoles = (data as Record<string, unknown>).roles;
+    if (typeof role === "string" && role.trim()) roles.add(role.trim());
+    if (Array.isArray(dataRoles)) dataRoles.forEach((entry) => roles.add(String(entry)));
+  }
+
+  return Array.from(roles).filter(Boolean);
+}
+
+async function loadUserRoles(db: BrowserDb, userId: string, tenantId: string): Promise<string[]> {
+  const { data, error } = await db
+    .from("tenant_users")
+    .select("role_name, data")
+    .eq("user_id", userId)
+    .eq("tenant_id", tenantId)
+    .is("deleted_at", null);
+
+  if (error || !data) return [];
+  return Array.from(new Set((data as Record<string, unknown>[]).flatMap(extractRoleNames)));
+}
+
+async function loadTenantsForUser(db: BrowserDb, userId: string): Promise<TenantOption[]> {
+  const { data: memberships, error } = await db.from("tenant_users").select("tenant_id").eq("user_id", userId).is("deleted_at", null);
   if (error || !memberships || memberships.length === 0) return [];
   const tenantIds = memberships.map((row: { tenant_id: string }) => row.tenant_id);
   return loadTenantRowsByIds(db, tenantIds);
 }
 
-async function loadDevelopmentTenants(db: ReturnType<typeof createBrowserDb>): Promise<TenantOption[]> {
+async function loadDevelopmentTenants(db: BrowserDb): Promise<TenantOption[]> {
   const fallbackTenantId = envValue("VITE_THERASSISTANT_TENANT_ID");
   const { data, error } = await db
     .from("tenants")
-    .select("id, name, legal_name, status, timezone")
+    .select("id, name, display_name, legal_name, status, timezone")
+    .is("deleted_at", null)
     .order("name", { ascending: true });
 
   const tenants = error || !data ? [] : (data as Record<string, unknown>[]).map(toTenantOption);
@@ -125,24 +145,25 @@ function selectTenant(tenants: TenantOption[], preferredTenantId?: string | null
 
 export async function loadAppUserContext(preferredTenantId?: string | null): Promise<AppUserContext> {
   try {
-    const db = createBrowserDb();
+    const db = createBrowserSupabaseClient();
     const { data: authData } = await db.auth.getUser();
-    const userId = authData.user?.id ?? null;
+    const userId = authData.user?.id ?? envValue("VITE_THERASSISTANT_ACTOR_USER_ID") ?? null;
     const email = authData.user?.email ?? null;
-    const tenants = userId ? await loadTenantsForUser(db, userId) : await loadDevelopmentTenants(db);
+    const tenants = authData.user?.id ? await loadTenantsForUser(db, authData.user.id) : await loadDevelopmentTenants(db);
     const selectedTenant = selectTenant(tenants, preferredTenantId);
+    const roles = authData.user?.id && selectedTenant ? await loadUserRoles(db, authData.user.id, selectedTenant.id) : [];
     const settingsSummary = selectedTenant ? await loadSettingsSummary(db, selectedTenant.id) : emptySummary;
     return {
-      authMode: userId ? "session" : "development",
+      authMode: authData.user?.id ? "session" : "development",
       userId,
       email,
-      roles: [],
+      roles,
       permissions: [],
       selectedTenantId: selectedTenant?.id ?? null,
       selectedTenantName: selectedTenant?.name ?? null,
       tenants,
       settingsSummary,
-      message: userId ? "Loaded authenticated user context." : "Using development tenant context. Supabase session is not active.",
+      message: authData.user?.id ? "Loaded authenticated user context." : "Using development tenant context. Supabase session is not active.",
     };
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown app context load error.";
