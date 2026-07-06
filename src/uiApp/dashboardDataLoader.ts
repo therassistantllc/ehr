@@ -4,7 +4,7 @@ import type {
   RcmDashboardSnapshot,
   WorkqueueDashboardItem,
   WorkqueueSummary,
-} from "../index";
+} from "../services/workqueueQueryService";
 import { mockDashboardSnapshot } from "./mockDashboardData";
 import {
   createBrowserSupabaseClient,
@@ -25,6 +25,14 @@ export type LoadedDashboardData = {
 
 type DbRow = Record<string, unknown> & { id: string };
 
+type ServiceLineRow = {
+  procedureCode?: string;
+  procedure_code?: string;
+  chargeAmount?: number;
+  charge_amount?: number;
+  units?: number;
+};
+
 function asString(value: unknown): string | null {
   return typeof value === "string" && value.length > 0 ? value : null;
 }
@@ -42,6 +50,10 @@ function arrayOfStrings(value: unknown): string[] {
   return Array.isArray(value) ? value.map((entry) => String(entry)).filter(Boolean) : [];
 }
 
+function serviceLines(value: unknown): ServiceLineRow[] {
+  return Array.isArray(value) ? value.filter((entry) => entry && typeof entry === "object") as ServiceLineRow[] : [];
+}
+
 function dashboardDomain(sourceType: string, workType: string): WorkqueueDashboardItem["domain"] {
   const source = sourceType.toLowerCase();
   const work = workType.toLowerCase();
@@ -53,10 +65,10 @@ function dashboardDomain(sourceType: string, workType: string): WorkqueueDashboa
 }
 
 function chargeAction(status: string): string {
-  if (status === "blocked") return "Resolve charge blocker";
-  if (status === "draft") return "Validate charge";
+  if (status === "blocked" || status === "hold" || status === "held") return "Resolve charge blocker";
+  if (status === "captured" || status === "draft") return "Validate charge";
   if (status === "ready_for_claim") return "Create claim";
-  if (status === "claimed") return "No charge-capture action needed";
+  if (status === "claimed" || status === "released") return "No charge-capture action needed";
   return "Review charge";
 }
 
@@ -70,57 +82,66 @@ function claimAction(status: string): string {
   return "Validate claim";
 }
 
+function chargeTab(status: string): ChargeDashboardRow["tab"] {
+  if (["blocked", "hold", "held", "void", "voided"].includes(status)) return "held_charges";
+  if (status === "ready_for_claim") return "ready_for_review";
+  if (["claimed", "released", "batched", "downloaded", "submitted"].includes(status)) return "released_to_claims";
+  return "documentation_missing";
+}
+
 function toWorkqueueItem(row: DbRow): WorkqueueDashboardItem {
-  const workType = String(row.workqueue_type ?? row.name ?? "workqueue");
-  const sourceObjectType = String(row.source_type ?? "");
+  const workType = String(row.work_type ?? row.title ?? "workqueue");
+  const sourceObjectType = String(row.source_object_type ?? "");
   return {
     id: row.id,
     domain: dashboardDomain(sourceObjectType, workType),
     workType,
     status: String(row.status ?? "open"),
     priority: String(row.priority ?? "normal"),
-    title: String(row.name ?? workType),
+    title: String(row.title ?? workType),
     description: asString(row.description),
     sourceObjectType,
-    sourceObjectId: String(row.source_id ?? ""),
-    assignedToUserId: asString(row.assigned_to),
+    sourceObjectId: String(row.source_object_id ?? ""),
+    assignedToUserId: asString(row.assigned_to_user_id),
     dueAt: asString(row.due_at),
     createdAt: asString(row.created_at),
-    context: objectValue(row.data),
+    context: objectValue(row.context_payload),
   };
 }
 
 function toChargeRow(row: DbRow): ChargeDashboardRow {
-  const status = String(row.status ?? "draft");
+  const lines = serviceLines(row.service_lines);
+  const firstLine = lines[0];
+  const status = String(row.charge_status ?? "captured");
   return {
     id: row.id,
-    tab: status === "blocked" ? "held_charges" : status === "ready_for_claim" ? "ready_for_review" : "released_to_claims",
+    tab: chargeTab(status),
     status,
     dateOfService: asString(row.service_date),
     clientId: asString(row.client_id),
-    providerId: asString(row.provider_id),
+    providerId: asString(row.provider_id ?? row.rendering_provider_id),
     appointmentId: asString(row.appointment_id),
-    cptCode: asString(row.cpt_code),
+    cptCode: asString(firstLine?.procedureCode ?? firstLine?.procedure_code),
     diagnosisCodes: arrayOfStrings(row.diagnosis_codes),
-    totalCharge: money(row.charge_amount),
-    blockers: [],
+    totalCharge: money(row.total_charge),
+    blockers: arrayOfStrings(row.blocker_reasons),
     actionNeeded: chargeAction(status),
   };
 }
 
 function toClaimRow(row: DbRow): ClaimDashboardRow {
-  const status = String(row.status ?? "draft");
+  const status = String(row.claim_status ?? "draft");
   return {
     id: row.id,
     status,
-    clientId: asString(row.client_id),
-    payerProfileId: asString(row.payer_id),
-    renderingProviderId: asString(row.provider_id),
-    totalCharge: money(row.total_charge_amount),
-    patientResponsibility: 0,
-    payerResponsibility: money(row.payer_paid_amount),
+    clientId: asString(row.client_id ?? row.patient_id),
+    payerProfileId: asString(row.payer_profile_id),
+    renderingProviderId: asString(row.rendering_provider_id),
+    totalCharge: money(row.total_charge),
+    patientResponsibility: money(row.patient_responsibility_amount),
+    payerResponsibility: money(row.payer_responsibility_amount),
     serviceDate: asString(row.service_date),
-    currentBatchId: null,
+    currentBatchId: asString(row.current_batch_id),
     actionNeeded: claimAction(status),
   };
 }
@@ -139,9 +160,9 @@ async function loadLiveDashboardSnapshot(options: DashboardLoadOptions = {}): Pr
   const context = createServiceContext(options);
 
   const [workqueuesResult, chargesResult, claimsResult] = await Promise.all([
-    db.from("workqueue_items").select("*").eq("tenant_id", context.tenantId).eq("status", "open").is("deleted_at", null).order("due_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }).limit(50),
-    db.from("charges").select("*").eq("tenant_id", context.tenantId).is("deleted_at", null).order("service_date", { ascending: true }).limit(100),
-    db.from("claims").select("*").eq("tenant_id", context.tenantId).is("deleted_at", null).order("service_date", { ascending: true }).limit(100),
+    db.from("workqueue_items").select("*").eq("tenant_id", context.tenantId).eq("status", "open").is("archived_at", null).order("due_at", { ascending: true, nullsFirst: false }).order("created_at", { ascending: false }).limit(50),
+    db.from("charges").select("*").eq("tenant_id", context.tenantId).is("archived_at", null).order("service_date", { ascending: true }).limit(100),
+    db.from("claims").select("*").eq("tenant_id", context.tenantId).is("archived_at", null).order("service_date", { ascending: true }).limit(100),
   ]);
 
   const firstError = workqueuesResult.error ?? chargesResult.error ?? claimsResult.error;
@@ -193,7 +214,7 @@ export async function resolveDashboardWorkqueueItem(workqueueItemId: string, not
 
   const { data: previous, error: readError } = await db
     .from("workqueue_items")
-    .select("data")
+    .select("context_payload")
     .eq("id", workqueueItemId)
     .eq("tenant_id", context.tenantId)
     .maybeSingle();
@@ -204,11 +225,11 @@ export async function resolveDashboardWorkqueueItem(workqueueItemId: string, not
     .from("workqueue_items")
     .update({
       status: "resolved",
-      data: {
-        ...objectValue((previous as { data?: unknown } | null)?.data),
+      resolved_at: new Date().toISOString(),
+      resolved_by_user_id: context.actorUserId ?? null,
+      context_payload: {
+        ...objectValue((previous as { context_payload?: unknown } | null)?.context_payload),
         resolutionNote: note,
-        resolvedAt: new Date().toISOString(),
-        resolvedByUserId: context.actorUserId ?? null,
       },
     })
     .eq("id", workqueueItemId)

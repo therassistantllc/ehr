@@ -18,6 +18,24 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
-  "exclude": ["node_modules", "dist"]
+  "include": [
+    "src/main.tsx",
+    "src/uiApp/**/*.ts",
+    "src/uiApp/**/*.tsx",
+    "src/adapters/**/*.ts",
+    "src/ui/**/*.ts",
+    "src/workqueues/**/*.ts",
+    "src/lib/**/*.ts",
+    "src/services/serviceBase.ts",
+    "src/services/chargeCaptureService.ts",
+    "src/services/workqueueQueryService.ts",
+    "vite.config.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "src/**/*.test.ts",
+    "src/**/*.test.tsx",
+    "src/**/__tests__/**"
+  ]
 }

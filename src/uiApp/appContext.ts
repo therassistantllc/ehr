@@ -44,15 +44,17 @@ const emptySummary: SettingsSummary = {
 function toTenantOption(row: Record<string, unknown>): TenantOption {
   return {
     id: String(row.id),
-    name: String(row.display_name ?? row.name ?? row.legal_name ?? row.id ?? "Unknown tenant"),
+    name: String(row.name ?? row.legal_name ?? row.id ?? "Unknown tenant"),
     legalName: typeof row.legal_name === "string" ? row.legal_name : null,
     status: typeof row.status === "string" ? row.status : null,
     timezone: typeof row.timezone === "string" ? row.timezone : null,
   };
 }
 
-async function countRows(db: BrowserDb, table: string, tenantId: string): Promise<number> {
-  const { count, error } = await db.from(table).select("id", { count: "exact", head: true }).eq("tenant_id", tenantId).is("deleted_at", null);
+async function countRows(db: BrowserDb, table: string, tenantId: string, archived = true): Promise<number> {
+  let query = db.from(table).select("id", { count: "exact", head: true }).eq("tenant_id", tenantId);
+  if (archived) query = query.is("archived_at", null);
+  const { count, error } = await query;
   if (error) return 0;
   return count ?? 0;
 }
@@ -63,7 +65,7 @@ async function loadSettingsSummary(db: BrowserDb, tenantId: string): Promise<Set
     countRows(db, "providers", tenantId),
     countRows(db, "payers", tenantId),
     countRows(db, "payer_profiles", tenantId),
-    countRows(db, "system_settings", tenantId),
+    countRows(db, "system_settings", tenantId, false),
   ]);
   return { practices, providers, payers, payerProfiles, systemSettings };
 }
@@ -74,45 +76,47 @@ async function loadTenantRowsByIds(db: BrowserDb, tenantIds: string[]): Promise<
 
   const { data: tenants, error } = await db
     .from("tenants")
-    .select("id, name, display_name, legal_name, status, timezone")
+    .select("id, name, legal_name, status, timezone")
     .in("id", uniqueTenantIds)
-    .is("deleted_at", null)
     .order("name", { ascending: true });
 
   if (error || !tenants) return [];
   return (tenants as Record<string, unknown>[]).map(toTenantOption);
 }
 
-function extractRoleNames(row: Record<string, unknown>): string[] {
-  const roles = new Set<string>();
-
-  if (typeof row.role_name === "string" && row.role_name.trim()) roles.add(row.role_name.trim());
-
-  const data = row.data;
-  if (data && typeof data === "object" && !Array.isArray(data)) {
-    const role = (data as Record<string, unknown>).role;
-    const dataRoles = (data as Record<string, unknown>).roles;
-    if (typeof role === "string" && role.trim()) roles.add(role.trim());
-    if (Array.isArray(dataRoles)) dataRoles.forEach((entry) => roles.add(String(entry)));
-  }
-
-  return Array.from(roles).filter(Boolean);
-}
-
 async function loadUserRoles(db: BrowserDb, userId: string, tenantId: string): Promise<string[]> {
-  const { data, error } = await db
+  const { data: memberships, error: membershipError } = await db
     .from("tenant_users")
-    .select("role_name, data")
+    .select("id")
     .eq("user_id", userId)
-    .eq("tenant_id", tenantId)
-    .is("deleted_at", null);
+    .eq("tenant_id", tenantId);
 
-  if (error || !data) return [];
-  return Array.from(new Set((data as Record<string, unknown>[]).flatMap(extractRoleNames)));
+  if (membershipError || !memberships?.length) return [];
+
+  const membershipIds = memberships.map((row: { id: string }) => row.id);
+  const { data: assignments, error: assignmentError } = await db
+    .from("tenant_user_roles")
+    .select("tenant_role_id")
+    .in("tenant_user_id", membershipIds);
+
+  if (assignmentError || !assignments?.length) return [];
+
+  const roleIds = assignments.map((row: { tenant_role_id: string }) => row.tenant_role_id).filter(Boolean);
+  if (!roleIds.length) return [];
+
+  const { data: roles, error: roleError } = await db
+    .from("tenant_roles")
+    .select("role_name, role_code")
+    .in("id", roleIds)
+    .eq("is_active", true);
+
+  if (roleError || !roles) return [];
+
+  return Array.from(new Set(roles.flatMap((row: { role_name: string | null; role_code: string | null }) => [row.role_name, row.role_code].filter(Boolean).map(String))));
 }
 
 async function loadTenantsForUser(db: BrowserDb, userId: string): Promise<TenantOption[]> {
-  const { data: memberships, error } = await db.from("tenant_users").select("tenant_id").eq("user_id", userId).is("deleted_at", null);
+  const { data: memberships, error } = await db.from("tenant_users").select("tenant_id").eq("user_id", userId);
   if (error || !memberships || memberships.length === 0) return [];
   const tenantIds = memberships.map((row: { tenant_id: string }) => row.tenant_id);
   return loadTenantRowsByIds(db, tenantIds);
@@ -122,8 +126,7 @@ async function loadDevelopmentTenants(db: BrowserDb): Promise<TenantOption[]> {
   const fallbackTenantId = envValue("VITE_THERASSISTANT_TENANT_ID");
   const { data, error } = await db
     .from("tenants")
-    .select("id, name, display_name, legal_name, status, timezone")
-    .is("deleted_at", null)
+    .select("id, name, legal_name, status, timezone")
     .order("name", { ascending: true });
 
   const tenants = error || !data ? [] : (data as Record<string, unknown>[]).map(toTenantOption);

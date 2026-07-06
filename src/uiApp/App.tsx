@@ -1,18 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  WORKQUEUE_ACTION_SCREENS,
-  buildRcmDashboardUiModel,
-  type ActionScreenDefinition,
-  type ChargeDashboardRow,
-  type ClaimDashboardRow,
-  type DashboardCard,
-  type DashboardMetric,
-  type DashboardSection,
-  type RcmDashboardSnapshot,
-  type UiField,
-  type WorkqueueDashboardItem,
-  type WorkqueueSummary,
-} from "../index";
+import { buildRcmDashboardUiModel } from "../adapters/rcmDashboardUiAdapter";
+import type { DashboardCard, DashboardMetric, DashboardSection } from "../adapters/rcmDashboardAdapters";
+import type { UiField } from "../ui/rcmDashboardComponents";
+import { WORKQUEUE_ACTION_SCREENS, type ActionScreenDefinition } from "../ui/workqueueActionScreens";
+import type {
+  ChargeDashboardRow,
+  ClaimDashboardRow,
+  RcmDashboardSnapshot,
+  WorkqueueDashboardItem,
+  WorkqueueSummary,
+} from "../services/workqueueQueryService";
 import { loadAppUserContext, type AppUserContext } from "./appContext";
 import { loadDashboardData, resolveDashboardWorkqueueItem, type DashboardDataMode, type DashboardLoadOptions } from "./dashboardDataLoader";
 import { mockDashboardSnapshot } from "./mockDashboardData";
