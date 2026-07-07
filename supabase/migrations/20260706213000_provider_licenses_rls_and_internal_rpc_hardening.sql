@@ -60,7 +60,7 @@ begin
         )
     $policy$;
   end if;
-end
+end;
 $$;
 
 do $$
