@@ -88,5 +88,5 @@ begin
       execute format('grant execute on function %s to service_role', function_signature);
     end if;
   end loop;
-end
+end;
 $$;
